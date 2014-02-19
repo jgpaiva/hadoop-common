@@ -63,6 +63,7 @@ src/examples/pipes/impl/config.h.in
 src/examples/pipes/install-sh
 src/examples/pipes/ltmain.sh
 src/examples/pipes/missing
+src/native/config
 src/native/configure
 src/native/INSTALL
 src/native/Makefile.in

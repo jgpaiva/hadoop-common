@@ -55,3 +55,7 @@ export HADOOP_JOBTRACKER_OPTS="-Dcom.sun.management.jmxremote $HADOOP_JOBTRACKER
 
 # The scheduling priority for daemon processes.  See 'man nice'.
 # export HADOOP_NICENESS=10
+
+export JAVA_HOME=`/usr/libexec/java_home -v 1.6`
+HADOOP_OPTS="${HADOOP_OPTS} -Djava.security.krb5.realm= -Djava.security.krb5.kdc="
+HADOOP_OPTS="${HADOOP_OPTS} -Djava.security.krb5.conf=/dev/null"
