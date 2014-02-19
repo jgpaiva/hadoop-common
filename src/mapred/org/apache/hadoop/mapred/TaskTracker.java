@@ -2858,7 +2858,7 @@ Runnable, TaskTrackerMXBean {
 		 * Kick off the task execution
 		 */
 		public synchronized void launchTask(RunningJob rjob) throws IOException {
-	    	System.out.println("ONDE ESTOU? tasktracker2 " + ManagementFactory.getRuntimeMXBean().getName());
+
 			if (this.taskStatus.getRunState() == TaskStatus.State.UNASSIGNED ||
 					this.taskStatus.getRunState() == TaskStatus.State.FAILED_UNCLEAN ||
 					this.taskStatus.getRunState() == TaskStatus.State.KILLED_UNCLEAN) {
@@ -3964,7 +3964,6 @@ Runnable, TaskTrackerMXBean {
 			}
 		}).start();
 
-	      System.out.println("ONDE ESTOU TASK TRACKER?" + ManagementFactory.getRuntimeMXBean().getName());
 		StringUtils.startupShutdownMessage(TaskTracker.class, argv, LOG);
 		if (argv.length != 0) {
 			System.out.println("usage: TaskTracker");
@@ -4633,15 +4632,15 @@ Runnable, TaskTrackerMXBean {
 	@Override
 	public boolean checkIfRelevantBlock(long blockId) {
 		boolean relevant = xIndexUtils.checkIfRelevantBlock(filters, blockId);
-
-		System.out.println("TASKTRACKER: going to check if in block with id " + blockId +
-				" contains the value: " + filters.get(filters.firstKey()));
-		System.out.println("TASKTRACKER: going to return " + relevant);
 		return relevant;
 	}
 	
 	private void buildFilters() {
 		String[] attrs = originalConf.getStrings("job_attributes", "");
+		
+		if(attrs[0] == "")
+			return;
+
 		for (String attr : attrs) {
 			String attrValue = originalConf.get("attribute_" + attr, "");
 			filters.put(new Integer(attr), attrValue);

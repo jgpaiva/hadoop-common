@@ -82,6 +82,8 @@ class MapTask extends Task {
 	public static final int MAP_OUTPUT_INDEX_RECORD_LENGTH = 24;
 
 	private TaskSplitIndex splitMetaInfo = new TaskSplitIndex();
+
+	public static boolean relevantBlock;
 	private final static int APPROX_HEADER_LENGTH = 150;
 
 	private static final Log LOG = LogFactory.getLog(MapTask.class.getName());
@@ -106,8 +108,8 @@ class MapTask extends Task {
 	public boolean isMapTask() {
 		return true;
 	}
-	
-	
+
+
 	/*mgferreira*/
 	public TaskSplitIndex getSplitIndex() {
 		return splitMetaInfo;
@@ -379,7 +381,7 @@ class MapTask extends Task {
 		}
 		done(umbilical, reporter);
 	}
-	
+
 	/*mgferreira*/
 	@SuppressWarnings("unchecked")
 	public <T> T getSplitDetails(Path file, long offset)
@@ -423,42 +425,40 @@ class MapTask extends Task {
 		updateJobWithSplit(job, inputSplit);
 		reporter.setInputSplit(inputSplit);
 
+		/*mgferreira*/
+		long blockId = ((FileSplit) inputSplit).getBlockId();
+		relevantBlock = umbilical.checkIfRelevantBlock(blockId);
+		System.out.println("MAPTASK: is block " + blockId + " relevant? " + relevantBlock);
+	
 		RecordReader<INKEY,INVALUE> in = isSkipping() ? 
 				new SkippingRecordReader<INKEY,INVALUE>(inputSplit, umbilical, reporter) :
 					new TrackedRecordReader<INKEY,INVALUE>(inputSplit, job, reporter);
-				job.setBoolean("mapred.skip.on", isSkipping());
+		job.setBoolean("mapred.skip.on", isSkipping());
 
 
-				int numReduceTasks = conf.getNumReduceTasks();
-				LOG.info("numReduceTasks: " + numReduceTasks);
-				MapOutputCollector collector = null;
-				if (numReduceTasks > 0) {
-					collector = new MapOutputBuffer(umbilical, job, reporter);
-				} else { 
-					collector = new DirectMapOutputCollector(umbilical, job, reporter);
-				}
-				MapRunnable<INKEY,INVALUE,OUTKEY,OUTVALUE> runner =
-						ReflectionUtils.newInstance(job.getMapRunnerClass(), job);
+		int numReduceTasks = conf.getNumReduceTasks();
+		LOG.info("numReduceTasks: " + numReduceTasks);
+		MapOutputCollector collector = null;
+		if (numReduceTasks > 0) {
+			collector = new MapOutputBuffer(umbilical, job, reporter);
+		} else { 
+			collector = new DirectMapOutputCollector(umbilical, job, reporter);
+		}
+		MapRunnable<INKEY,INVALUE,OUTKEY,OUTVALUE> runner =
+				ReflectionUtils.newInstance(job.getMapRunnerClass(), job);
 
-				try {
-					
-					/*mgferreira*/
-					boolean relevant = umbilical.checkIfRelevantBlock(((FileSplit) inputSplit).getBlockId());
-					System.out.println("MAPTASK: relevant block? " + relevant);
-					if(relevant) {
-						runner.run(in, new OldOutputCollector(collector, conf), reporter);
-					}
+		try {
+			runner.run(in, new OldOutputCollector(collector, conf), reporter);
+			collector.flush();
 
-					collector.flush();
-
-					in.close();
-					in = null;
-					collector.close();
-					collector = null;
-				} finally {
-					closeQuietly(in);
-					closeQuietly(collector);
-				}
+			in.close();
+			in = null;
+			collector.close();
+			collector = null;
+		} finally {
+			closeQuietly(in);
+			closeQuietly(collector);
+		}
 	}
 
 	/**

@@ -176,7 +176,7 @@ public class DataNode extends Configured
   
   /*mgferreira*/
   public static int columnsPerRowGroup;
-  public static int currentColumn = 0;
+  public static int currentColumn = -1;
 
   public static final String DN_CLIENTTRACE_FORMAT =
         "src: %s" +      // src IP
@@ -1638,7 +1638,6 @@ public class DataNode extends Configured
                                       Configuration conf, 
                                       SecureResources resources) throws IOException {
 	  
-	  System.out.println("OLAAA");
     if (conf == null)
       conf = new Configuration();
     if (!parseArguments(args, conf)) {

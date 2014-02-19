@@ -46,8 +46,11 @@ public class xIndexUtils {
 	}
 
 	private static void initializeIndexForCurrentColumn() {
-		currentColumnIndex = new TreeMap<String, TreeSet<Long>>();
-		index.put(new Integer(currentColumn), currentColumnIndex);
+		currentColumnIndex = index.get(new Integer(currentColumn));
+		if(currentColumnIndex == null) {
+			currentColumnIndex = new TreeMap<String, TreeSet<Long>>();
+			index.put(new Integer(currentColumn), currentColumnIndex);
+		}
 	}
 
 	private static void addEntriesToIndex(String[] entriesToAdd, long blockId) {
@@ -60,18 +63,28 @@ public class xIndexUtils {
 	}
 
 	public static boolean checkIfRelevantBlock(TreeMap<Integer, String> filters, long blockId) {
+		if(filters.size() == 0)
+			return true;		
+		
 		Integer attrNr = block2attrNr.get(new Long(blockId));	
 		System.out.println("block " + blockId + " refers to attribute number: " + attrNr);
+		
+		System.out.println(index);
 		
 		String attrValue = filters.get(attrNr);
 		if(attrValue == null)//no filters for this attribute
 			return true;
+		
+
+		System.out.println(attrValue);
 		
 		//TODO: vale a pena guardar estes relevantBlocks para n ter q os ir buscar a cada avaliacao de um novo bloco?
 		
 		TreeSet<Long> relevantBlocks = index.get(attrNr).get(attrValue);
 		if(relevantBlocks == null)//no relevant blocks for this filter
 			return false;
+
+		System.out.println(relevantBlocks);
 
 		return relevantBlocks.contains(new Long(blockId));
 	}

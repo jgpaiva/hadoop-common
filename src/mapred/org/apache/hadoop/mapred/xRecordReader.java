@@ -78,44 +78,46 @@ public class xRecordReader implements RecordReader<LongWritable, Text> {
 	public xRecordReader(Configuration job, 
 			FileSplit split) throws IOException {
 
-		this.maxLineLength = job.getInt("mapred.linerecordreader.maxlength", Integer.MAX_VALUE);
-		start = split.getStart();
-		end = start + split.getLength();
-		final Path file = split.getPath();
-		compressionCodecs = new CompressionCodecFactory(job);
-		codec = compressionCodecs.getCodec(file);
+		if(MapTask.relevantBlock) {
+			this.maxLineLength = job.getInt("mapred.linerecordreader.maxlength", Integer.MAX_VALUE);
+			start = split.getStart();
+			end = start + split.getLength();
+			final Path file = split.getPath();
+			compressionCodecs = new CompressionCodecFactory(job);
+			codec = compressionCodecs.getCodec(file);
 
-		// open the file and seek to the start of the split
-		FileSystem fs = file.getFileSystem(job);
-		FSDataInputStream fileIn = fs.open(split.getPath());
+			// open the file and seek to the start of the split
+			FileSystem fs = file.getFileSystem(job);
+			FSDataInputStream fileIn = fs.open(split.getPath());
 
-		if (isCompressedInput()) {
-			decompressor = CodecPool.getDecompressor(codec);
-			if (codec instanceof SplittableCompressionCodec) {
-				final SplitCompressionInputStream cIn =
-						((SplittableCompressionCodec)codec).createInputStream(
-								fileIn, decompressor, start, end,
-								SplittableCompressionCodec.READ_MODE.BYBLOCK);
-				in = new LineReader(cIn, job);
-				start = cIn.getAdjustedStart();
-				end = cIn.getAdjustedEnd();
-				filePosition = cIn; // take pos from compressed stream
+			if (isCompressedInput()) {
+				decompressor = CodecPool.getDecompressor(codec);
+				if (codec instanceof SplittableCompressionCodec) {
+					final SplitCompressionInputStream cIn =
+							((SplittableCompressionCodec)codec).createInputStream(
+									fileIn, decompressor, start, end,
+									SplittableCompressionCodec.READ_MODE.BYBLOCK);
+					in = new LineReader(cIn, job);
+					start = cIn.getAdjustedStart();
+					end = cIn.getAdjustedEnd();
+					filePosition = cIn; // take pos from compressed stream
+				} else {
+					in = new LineReader(codec.createInputStream(fileIn, decompressor), job);
+					filePosition = fileIn;
+				}
 			} else {
-				in = new LineReader(codec.createInputStream(fileIn, decompressor), job);
+				fileIn.seek(start);
+				in = new LineReader(fileIn, job);
 				filePosition = fileIn;
 			}
-		} else {
-			fileIn.seek(start);
-			in = new LineReader(fileIn, job);
-			filePosition = fileIn;
+			// If this is not the first split, we always throw away first record
+			// because we always (except the last split) read one extra line in
+			// next() method.
+			if (start != 0) {
+				start += in.readLine(new Text(), 0, maxBytesToConsume(start));
+			}
+			this.pos = start;
 		}
-		// If this is not the first split, we always throw away first record
-		// because we always (except the last split) read one extra line in
-		// next() method.
-		if (start != 0) {
-			start += in.readLine(new Text(), 0, maxBytesToConsume(start));
-		}
-		this.pos = start;
 	}
 
 	private boolean isCompressedInput() {
@@ -171,6 +173,10 @@ public class xRecordReader implements RecordReader<LongWritable, Text> {
 	/** Read a line. */
 	public synchronized boolean next(LongWritable key, Text value)
 			throws IOException {
+
+		if(!MapTask.relevantBlock) {
+			return false;
+		}
 
 		// We always read one extra line, which lies outside the upper
 		// split limit i.e. (end - 1)

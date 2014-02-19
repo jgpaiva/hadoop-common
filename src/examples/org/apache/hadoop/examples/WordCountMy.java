@@ -72,7 +72,8 @@ public class WordCountMy extends Configured implements Tool {
       StringTokenizer itr = new StringTokenizer(line);
       while (itr.hasMoreTokens()) {
         word.set(itr.nextToken());
-        output.collect(word, one);
+	if(word.toString().equals("manel"))
+        	output.collect(word, one);
       }
     }
   }

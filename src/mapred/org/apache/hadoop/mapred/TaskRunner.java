@@ -188,7 +188,6 @@ abstract class TaskRunner extends Thread {
   public final void run() {
     String errorInfo = "Child Error";
     
-    System.out.println("ONDE ESTOU? task runner " + ManagementFactory.getRuntimeMXBean().getName());
     try {
       
       //before preparing the job localize 

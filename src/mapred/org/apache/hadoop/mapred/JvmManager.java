@@ -125,8 +125,6 @@ class JvmManager {
   public void launchJvm(TaskRunner t, JvmEnv env
                         ) throws IOException, InterruptedException {
     if (t.getTask().isMapTask()) {
-
-    	System.out.println("ONDE ESTOU? jvm manager " + ManagementFactory.getRuntimeMXBean().getName());
       mapJvmManager.reapJvm(t, env);
     } else {
       reduceJvmManager.reapJvm(t, env);

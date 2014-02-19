@@ -46,8 +46,6 @@ public class MapRunner<K1, V1, K2, V2>
       K1 key = input.createKey();
       V1 value = input.createValue();
       
-      System.out.println("ONDE ESTOU? MAP RUNNER" + ManagementFactory.getRuntimeMXBean().getName());
-      
       while (input.next(key, value)) {
         // map pair to output
         mapper.map(key, value, output, reporter);

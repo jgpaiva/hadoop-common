@@ -511,7 +511,12 @@ class DataXceiver implements Runnable, FSConstants {
 
 			/*mgferreira*/ 
 			blockReceiver.createIndex = true;
-			DataNode.currentColumn = (DataNode.currentColumn + 1) % DataNode.columnsPerRowGroup;
+			if(DataNode.columnsPerRowGroup == 1) {
+				DataNode.currentColumn = 0;
+			}
+			else {
+				DataNode.currentColumn = (DataNode.currentColumn + 1) % DataNode.columnsPerRowGroup;
+			}
 			xIndexUtils.currentColumn = DataNode.currentColumn;
 
 			//
