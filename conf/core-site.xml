@@ -1,8 +1,3 @@
-<?xml version="1.0"?>
-<?xml-stylesheet type="text/xsl" href="configuration.xsl"?>
-
-<!-- Put site-specific property overrides in this file. -->
-
 <configuration>
 <property> 
 <name>hadoop.tmp.dir</name> 
@@ -19,4 +14,45 @@ uri’s scheme determines the config property (fs.SCHEME.impl) naming
 the FileSystem implementation class. The uri’s authority is used to 
 determine the host, port, etc. for a filesystem.</description> 
 </property>
+
+<property>
+<name>dfs.block.replicator.classname</name>
+<value>org.apache.hadoop.hdfs.server.namenode.BlockPlacementPolicyWithColocation</value>
+<description> The default implementation of ReplicationTargetChooser.
+</description>
+</property>
+
+<property>
+<name>columns</name>
+<value>1</value>
+<description> The number of attributes containing in the dataset  </description>
+</property>
+
+<property>
+<name>totalBlocks</name>
+<value>37</value>
+<description> The total number of blocks that will be required to store the dataset </description>
+</property>
+
+<property>
+<name>first.column.identifier</name>
+<value>_1_</value>
+<description> Sequence of characters that identifies the first columns of row groups </description>
+</property>
+
+
+<property>
+<name>job_attributes</name>
+<value>0</value>
+<description> The sequence number of the attributes the job is interested in </description>
+</property>
+
+
+<property>
+<name>attribute_0</name>
+<value>manel</value>
+<description> The value of the attribute #, the job is interested in </description>
+</property>
+
+
 </configuration>
