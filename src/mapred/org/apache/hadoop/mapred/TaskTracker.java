@@ -966,9 +966,6 @@ Runnable, TaskTrackerMXBean {
 		readaheadLength = fConf.getInt(
 				"mapreduce.shuffle.readahead.bytes",
 				4 * 1024 * 1024);
-		
-		/*mgferreira*/
-		buildFilters();
 	}
 
 	private void startJettyBugMonitor() {
@@ -4630,23 +4627,18 @@ Runnable, TaskTrackerMXBean {
 	
 	/*mgferreira*/
 	@Override
-	public boolean checkIfRelevantBlock(long blockId) {
-		boolean relevant = xIndexUtils.checkIfRelevantBlock(filters, blockId);
-		return relevant;
-	}
-	
-	private void buildFilters() {
-		String[] attrs = originalConf.getStrings("job_attributes", "");
-		
-		if(attrs[0] == "")
-			return;
+	public boolean checkIfRelevantBlock(long blockId, String filters) {
+		TreeMap<Integer, String> filtersMap = new TreeMap<Integer, String>();
 
-		for (String attr : attrs) {
-			String attrValue = originalConf.get("attribute_" + attr, "");
-			filters.put(new Integer(attr), attrValue);
+		if(filters != null) {
+			String[] filtersArr = filters.split(";");
+			for (String filter : filtersArr) {
+				Integer attrNr = Integer.parseInt(filter.split("-")[0]);
+				String attrValue = filter.split("-")[1];
+				filtersMap.put(attrNr, attrValue);
+				System.out.println("there are filters!: " + attrNr + " - " + attrValue);
+			}
 		}
-		System.out.println("building filters..");
-		System.out.println(filters);
+		return xIndexUtils.checkIfRelevantBlock(filtersMap, blockId);
 	}
-
 }

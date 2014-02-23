@@ -1,7 +1,7 @@
 <configuration>
 <property> 
 <name>hadoop.tmp.dir</name> 
-<value>/tmp/hadoop_tmp_dir</value>
+<value>/home/manuelgf/Downloads/hadoop-1.2.1/tmp</value>
 <description>A base for other temporary directories.</description> 
 </property>
 
@@ -26,12 +26,6 @@ determine the host, port, etc. for a filesystem.</description>
 <name>columns</name>
 <value>1</value>
 <description> The number of attributes containing in the dataset  </description>
-</property>
-
-<property>
-<name>totalBlocks</name>
-<value>37</value>
-<description> The total number of blocks that will be required to store the dataset </description>
 </property>
 
 <property>

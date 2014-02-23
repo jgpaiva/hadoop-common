@@ -56,5 +56,5 @@ export HADOOP_JOBTRACKER_OPTS="-Dcom.sun.management.jmxremote $HADOOP_JOBTRACKER
 # The scheduling priority for daemon processes.  See 'man nice'.
 # export HADOOP_NICENESS=10
 
-export JAVA_HOME=/usr/lib/jvm/java-6-sun
 
+export JAVA_HOME=/usr/lib/jvm/java-6-sun

@@ -24,6 +24,7 @@ import org.apache.hadoop.net.NodeBase;
 
 @InterfaceAudience.Private
 public class BlockPlacementPolicyWithColocation extends BlockPlacementPolicy {
+	public static boolean appData;
 	protected boolean considerLoad; 
 	protected NetworkTopology clusterMap;
 	private FSClusterStats stats;
@@ -33,7 +34,6 @@ public class BlockPlacementPolicyWithColocation extends BlockPlacementPolicy {
 	/*mgferreira*/
 	private int columnsPerRowGroup;
 	private int currentColumn;
-	private int totalBlocksForInput;
 	private DatanodeDescriptor[] datanodesForCurrentRowGroup;
 
 	BlockPlacementPolicyWithColocation(Configuration conf,  FSClusterStats stats,
@@ -57,8 +57,7 @@ public class BlockPlacementPolicyWithColocation extends BlockPlacementPolicy {
 
 		/*mgferreira*/
 		this.columnsPerRowGroup = conf.getInt("columns", 1);
-		this.totalBlocksForInput= conf.getInt("totalBlocks", 1);
-		this.currentColumn = 0;
+		this.currentColumn = -1;
 		this.datanodesForCurrentRowGroup = null;
 
 	}
@@ -102,18 +101,18 @@ public class BlockPlacementPolicyWithColocation extends BlockPlacementPolicy {
 			HashMap<Node, Node> excludedNodes,
 			long blocksize) {
 
-	    /* mgferreira */
-		if (totalBlocksForInput > 0) { /* we're allocating a new block for the input. not for the output*/
-			LOG.debug(totalBlocksForInput + " more input blocks");
 
-			totalBlocksForInput--;
+	    System.out.println("PLACEMENT POLICY ADDBLOCK. app data? " + appData);
+		
+	    /* mgferreira */
+		if (appData) { /* we're allocating a new block for the input. not for the output*/
+
 			currentColumn = (currentColumn + 1) % columnsPerRowGroup;
 			
-			if ((currentColumn - 1) != 0) {
+			if (currentColumn != 0) {
 				LOG.debug("Same row group!");
 				return datanodesForCurrentRowGroup;
 			}
-
 			LOG.debug("New row group!");
 		}
 		

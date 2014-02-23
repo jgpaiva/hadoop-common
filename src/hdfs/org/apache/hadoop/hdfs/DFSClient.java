@@ -3725,7 +3725,10 @@ public class DFSClient implements FSConstants, java.io.Closeable {
         while (true) {
           try {
             if (serverSupportsHdfs630) {
-              return namenode.addBlock(src, clientName, excludedNodes);
+            	if(blockBelongsToAppData()) {
+            		return namenode.addBlock(src, clientName, excludedNodes, true);
+            	}
+            	return namenode.addBlock(src, clientName, excludedNodes);
             } else {
               return namenode.addBlock(src, clientName);
             }

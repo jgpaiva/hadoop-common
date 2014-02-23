@@ -776,8 +776,8 @@ public class NameNode implements ClientProtocol, DatanodeProtocol,
       for (Node node:excludedNodes) {
         excludedNodesSet.put(node, node);
       }
-    }
-
+    }	
+    
     stateChangeLog.debug("*BLOCK* NameNode.addBlock: "
                          +src+" for "+clientName);
     LocatedBlock locatedBlock = namesystem.getAdditionalBlock(
@@ -787,6 +787,17 @@ public class NameNode implements ClientProtocol, DatanodeProtocol,
     return locatedBlock;
   }
 
+  /*mgferreira*/
+  @Override
+  public LocatedBlock addBlock(String src, String clientName, DatanodeInfo[] excludedNodes, boolean appBlock) 
+		  throws IOException {
+
+	  	BlockPlacementPolicyWithColocation.appData = true;
+	  	LocatedBlock lb = addBlock(src, clientName, excludedNodes);
+	  	BlockPlacementPolicyWithColocation.appData = false;
+	  	return lb;
+}
+ 
   /**
    * The client needs to give up on the block.
    */
@@ -1486,7 +1497,7 @@ public class NameNode implements ClientProtocol, DatanodeProtocol,
     try {
       StringUtils.startupShutdownMessage(NameNode.class, argv, LOG);
       NameNode namenode = createNameNode(argv, null);
-      System.out.println("NAMENODE CLASS LOADER: " + namenode.getClass().getClassLoader());
+
       if (namenode != null)
         namenode.join();
     } catch (Throwable e) {

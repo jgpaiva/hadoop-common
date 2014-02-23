@@ -69,22 +69,15 @@ public class xIndexUtils {
 		Integer attrNr = block2attrNr.get(new Long(blockId));	
 		System.out.println("block " + blockId + " refers to attribute number: " + attrNr);
 		
-		System.out.println(index);
-		
 		String attrValue = filters.get(attrNr);
 		if(attrValue == null)//no filters for this attribute
 			return true;
-		
 
-		System.out.println(attrValue);
-		
 		//TODO: vale a pena guardar estes relevantBlocks para n ter q os ir buscar a cada avaliacao de um novo bloco?
 		
 		TreeSet<Long> relevantBlocks = index.get(attrNr).get(attrValue);
 		if(relevantBlocks == null)//no relevant blocks for this filter
 			return false;
-
-		System.out.println(relevantBlocks);
 
 		return relevantBlocks.contains(new Long(blockId));
 	}

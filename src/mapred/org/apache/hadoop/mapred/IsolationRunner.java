@@ -133,7 +133,7 @@ public class IsolationRunner {
     }
 
 	@Override
-	public boolean checkIfRelevantBlock(long blockId) {
+	public boolean checkIfRelevantBlock(long blockId, String filters) {
 		// TODO Auto-generated method stub
 		return false;
 	}
