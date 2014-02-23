@@ -28,7 +28,7 @@
  
   <property name="Name" value="Hadoop"/>
   <property name="name" value="hadoop"/>
-  <property name="version" value="1.2.2-SNAPSHOT"/>
+  <property name="version" value="1.2.1"/>
   <property name="final.name" value="${name}-${version}"/>
   <property name="test.final.name" value="${name}-test-${version}"/>
   <property name="year" value="2009"/>
@@ -759,7 +759,7 @@
     </tar>
     <property name="jar.properties.list"
       value="commons-logging.properties, log4j.properties, hadoop-metrics.properties, task-log4j.properties"/>
-    <jar jarfile="${build.dir}/${core.final.name}.jar"
+    <jar jarfile="${core.final.name}.jar"
          basedir="${build.classes}">
       <manifest>
         <section name="org/apache/hadoop">
@@ -820,7 +820,7 @@
     <attribute name="build.dir" />
     <attribute name="basedir" />
     <sequential>
-      <jar jarfile="@{build.dir}/${examples.final.name}.jar"
+      <jar jarfile="${examples.final.name}.jar"
            basedir="@{basedir}">
         <manifest>
           <attribute name="Main-Class"
