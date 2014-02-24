@@ -22,6 +22,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.lang.management.ManagementFactory;
 import java.lang.reflect.Field;
+import java.util.ArrayList;
 import java.util.TreeMap;
 import java.util.TreeSet;
 
@@ -57,7 +58,19 @@ public class xRecordReader implements RecordReader<LongWritable, Text> {
 	private Seekable filePosition;
 	private CompressionCodec codec;
 	private Decompressor decompressor;
+	
+	//new
+	private ArrayList<LineReader> inN = new ArrayList<LineReader> ();
+	private ArrayList<Seekable> filePositionN = new ArrayList<Seekable>();
+	private ArrayList<Long> posN = new ArrayList<Long>();
 
+
+	private String FIRST_COLUMN_IDENTIFIER;
+	
+	private ArrayList<FSDataInputStream> array2inputStreams = new ArrayList<FSDataInputStream>();
+	
+	
+	
 	/**
 	 * A class that provides a line reader from an input stream.
 	 * @deprecated Use {@link org.apache.hadoop.util.LineReader} instead.
@@ -75,20 +88,31 @@ public class xRecordReader implements RecordReader<LongWritable, Text> {
 		}
 	}
 
-	public xRecordReader(Configuration job, 
-			FileSplit split) throws IOException {
+	public xRecordReader(Configuration job, FileSplit split) throws IOException {
 
 		if(MapTask.relevantBlock) {
-			this.maxLineLength = job.getInt("mapred.linerecordreader.maxlength", Integer.MAX_VALUE);
+			this.maxLineLength = job.getInt("mapred.linerecordreader.maxlength", Integer.MAX_VALUE);			
+			FIRST_COLUMN_IDENTIFIER = job.get("first.column.identifier");
+
 			start = split.getStart();
 			end = start + split.getLength();
-			final Path file = split.getPath();
+			
+			//new
+			ArrayList<Path> pathsToRelevantBlocks = getPathsToRelevantBlocks(split.getPath(), job);
+			final Path file = pathsToRelevantBlocks.remove(0);
+			
 			compressionCodecs = new CompressionCodecFactory(job);
 			codec = compressionCodecs.getCodec(file);
 
 			// open the file and seek to the start of the split
 			FileSystem fs = file.getFileSystem(job);
-			FSDataInputStream fileIn = fs.open(split.getPath());
+			
+			
+			//new
+			for (Path path : pathsToRelevantBlocks) {
+				array2inputStreams.add(fs.open(path));
+			}
+			FSDataInputStream fileIn = fs.open(file);
 
 			if (isCompressedInput()) {
 				decompressor = CodecPool.getDecompressor(codec);
@@ -106,6 +130,13 @@ public class xRecordReader implements RecordReader<LongWritable, Text> {
 					filePosition = fileIn;
 				}
 			} else {
+				//new
+				for (FSDataInputStream fileInN: array2inputStreams) {
+					fileInN.seek(start);
+					inN.add(new LineReader(fileInN, job));
+					filePositionN.add(fileInN);
+				}
+					
 				fileIn.seek(start);
 				in = new LineReader(fileIn, job);
 				filePosition = fileIn;
@@ -117,7 +148,27 @@ public class xRecordReader implements RecordReader<LongWritable, Text> {
 				start += in.readLine(new Text(), 0, maxBytesToConsume(start));
 			}
 			this.pos = start;
+			//new
+			for (Path path : pathsToRelevantBlocks) {
+				posN.add(new Long(0));
+			}
 		}
+	}
+
+	private ArrayList<Path> getPathsToRelevantBlocks(Path file, Configuration job) {
+		ArrayList<Path> paths = new ArrayList<Path>();
+		
+		String relevantAttrsS = job.get("relevantAttrs");
+		String[] relevantAttrs = relevantAttrsS.split(";");
+		
+		for(String relevantAttr : relevantAttrs) {
+			Path filePath = file.getParent();
+			String fileName = file.getName();
+			String newFileName = fileName.replace(FIRST_COLUMN_IDENTIFIER, "_" + relevantAttr + "_");
+			Path newPath = new Path(filePath, newFileName);
+			paths.add(newPath);
+		}
+		return paths;
 	}
 
 	private boolean isCompressedInput() {
@@ -183,8 +234,22 @@ public class xRecordReader implements RecordReader<LongWritable, Text> {
 		while (getFilePosition() <= end) {
 			key.set(pos);
 
-			int newSize = in.readLine(value, maxLineLength,
-					Math.max(maxBytesToConsume(pos), maxLineLength));
+			int newSize = in.readLine(value, maxLineLength, Math.max(maxBytesToConsume(pos), maxLineLength));
+		    Text accumulator = new Text(value.toString());
+			
+			for (LineReader in : inN) {
+				Text newValue = new Text();
+				long pos = posN.get(0);
+				newSize = in.readLine(newValue, maxLineLength, Math.max(maxBytesToConsume(pos), maxLineLength));
+				accumulator.set(accumulator.toString() + ";" + newValue.toString());
+
+				if (newSize != 0) {
+					pos += newSize;
+					posN.add(0, new Long(pos));
+				}
+			}
+			value.set(accumulator.toString());
+
 			if (newSize == 0) {
 				return false;
 			}
@@ -192,7 +257,6 @@ public class xRecordReader implements RecordReader<LongWritable, Text> {
 			if (newSize < maxLineLength) {
 				return true;
 			}
-
 			// line too long. try again
 			LOG.info("Skipped line of size " + newSize + " at pos " + (pos - newSize));
 		}

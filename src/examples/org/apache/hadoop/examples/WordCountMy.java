@@ -72,8 +72,12 @@ public class WordCountMy extends Configured implements Tool {
       StringTokenizer itr = new StringTokenizer(line);
       while (itr.hasMoreTokens()) {
         word.set(itr.nextToken());
-	if(word.toString().equals("manel"))
-        	output.collect(word, one);
+
+        String[] args = word.toString().split(";");
+
+        if(args[0].equals("manel")) {
+            	output.collect(word, one);
+        }
       }
     }
   }
@@ -120,6 +124,11 @@ public class WordCountMy extends Configured implements Tool {
     conf.setCombinerClass(Reduce.class);
     conf.setReducerClass(Reduce.class);
     conf.setInputFormat(xInputFormat.class);    
+    
+    /*mgferreira*/
+    /* applying filters: <attribute number #>-<predicate>;<attribute number #>-<predicate> */
+    //conf.setIfUnset("filters", "0-manel");
+    conf.setIfUnset("relevantAttrs", "0");
     
     List<String> other_args = new ArrayList<String>();
     for(int i=0; i < args.length; ++i) {

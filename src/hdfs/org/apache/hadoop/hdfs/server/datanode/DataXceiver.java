@@ -517,7 +517,7 @@ class DataXceiver implements Runnable, FSConstants {
 			else {
 				DataNode.currentColumn = (DataNode.currentColumn + 1) % DataNode.columnsPerRowGroup;
 			}
-			xIndexUtils.currentColumn = DataNode.currentColumn;
+			xIndexUtils.currentColumnNr = DataNode.currentColumn;
 
 	        int mb = 1024*1024;
 	         

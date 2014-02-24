@@ -30,23 +30,8 @@ determine the host, port, etc. for a filesystem.</description>
 
 <property>
 <name>first.column.identifier</name>
-<value>_1_</value>
+<value>_0_</value>
 <description> Sequence of characters that identifies the first columns of row groups </description>
 </property>
-
-
-<property>
-<name>job_attributes</name>
-<value>0</value>
-<description> The sequence number of the attributes the job is interested in </description>
-</property>
-
-
-<property>
-<name>attribute_0</name>
-<value>manel</value>
-<description> The value of the attribute #, the job is interested in </description>
-</property>
-
 
 </configuration>

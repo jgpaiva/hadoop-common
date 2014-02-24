@@ -4630,6 +4630,7 @@ Runnable, TaskTrackerMXBean {
 	public boolean checkIfRelevantBlock(long blockId, String filters) {
 		TreeMap<Integer, String> filtersMap = new TreeMap<Integer, String>();
 
+		// <attribute number #>-<predicate>;<attribute number #>-<predicate>...
 		if(filters != null) {
 			String[] filtersArr = filters.split(";");
 			for (String filter : filtersArr) {
@@ -4639,6 +4640,6 @@ Runnable, TaskTrackerMXBean {
 				System.out.println("there are filters!: " + attrNr + " - " + attrValue);
 			}
 		}
-		return xIndexUtils.checkIfRelevantBlock(filtersMap, blockId);
+		return xIndexUtils.checkIfRelevantSplit(filtersMap, blockId);
 	}
 }
