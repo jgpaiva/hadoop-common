@@ -59,17 +59,18 @@ public class xRecordReader implements RecordReader<LongWritable, Text> {
 	private CompressionCodec codec;
 	private Decompressor decompressor;
 	
-	//new
 	private ArrayList<LineReader> inN = new ArrayList<LineReader> ();
 	private ArrayList<Seekable> filePositionN = new ArrayList<Seekable>();
 	private ArrayList<Long> posN = new ArrayList<Long>();
-
+	private int currentBlockIndex;
+	private boolean skipCurrentSplit;
 
 	private String FIRST_COLUMN_IDENTIFIER;
 	
 	private ArrayList<FSDataInputStream> array2inputStreams = new ArrayList<FSDataInputStream>();
-	
-	
+
+	private xFileSplit split;
+	private Configuration job;	
 	
 	/**
 	 * A class that provides a line reader from an input stream.
@@ -88,28 +89,36 @@ public class xRecordReader implements RecordReader<LongWritable, Text> {
 		}
 	}
 
-	public xRecordReader(Configuration job, FileSplit split) throws IOException {
+	public xRecordReader(Configuration job, xFileSplit split) throws IOException {
+		currentBlockIndex = 0;
+		this.job = job;
+		this.split = split;
+		openFile();
+	}
 
-		if(MapTask.relevantBlock) {
+	private void openFile() throws IOException {
+		long currentBlockId = split.getBlocksIds().get(currentBlockIndex);
+		skipCurrentSplit = !MapTask.relevantSplit(currentBlockId);
+		
+		
+		if(!skipCurrentSplit) {
+			System.out.println("block " + currentBlockId + " is relevant!");
 			this.maxLineLength = job.getInt("mapred.linerecordreader.maxlength", Integer.MAX_VALUE);			
 			FIRST_COLUMN_IDENTIFIER = job.get("first.column.identifier");
 
 			start = split.getStart();
 			end = start + split.getLength();
-			
-			//new
-			ArrayList<Path> pathsToRelevantBlocks = getPathsToRelevantBlocks(split.getPath(), job);
-			final Path file = pathsToRelevantBlocks.remove(0);
+
+			ArrayList<Path> pathsToBlocksOfRelevantSplit = getPathsToRelevantSplit(split.getPaths().get(currentBlockIndex), job);
+			final Path file = pathsToBlocksOfRelevantSplit.remove(0);
 			
 			compressionCodecs = new CompressionCodecFactory(job);
 			codec = compressionCodecs.getCodec(file);
 
 			// open the file and seek to the start of the split
 			FileSystem fs = file.getFileSystem(job);
-			
-			
-			//new
-			for (Path path : pathsToRelevantBlocks) {
+
+			for (Path path : pathsToBlocksOfRelevantSplit) {
 				array2inputStreams.add(fs.open(path));
 			}
 			FSDataInputStream fileIn = fs.open(file);
@@ -130,13 +139,11 @@ public class xRecordReader implements RecordReader<LongWritable, Text> {
 					filePosition = fileIn;
 				}
 			} else {
-				//new
 				for (FSDataInputStream fileInN: array2inputStreams) {
 					fileInN.seek(start);
 					inN.add(new LineReader(fileInN, job));
 					filePositionN.add(fileInN);
 				}
-					
 				fileIn.seek(start);
 				in = new LineReader(fileIn, job);
 				filePosition = fileIn;
@@ -148,14 +155,13 @@ public class xRecordReader implements RecordReader<LongWritable, Text> {
 				start += in.readLine(new Text(), 0, maxBytesToConsume(start));
 			}
 			this.pos = start;
-			//new
-			for (Path path : pathsToRelevantBlocks) {
+			for (Path path : pathsToBlocksOfRelevantSplit) {
 				posN.add(new Long(0));
 			}
 		}
 	}
 
-	private ArrayList<Path> getPathsToRelevantBlocks(Path file, Configuration job) {
+	private ArrayList<Path> getPathsToRelevantSplit(Path file, Configuration job) {
 		ArrayList<Path> paths = new ArrayList<Path>();
 		
 		String relevantAttrsS = job.get("relevantAttrs");
@@ -225,13 +231,16 @@ public class xRecordReader implements RecordReader<LongWritable, Text> {
 	public synchronized boolean next(LongWritable key, Text value)
 			throws IOException {
 
-		if(!MapTask.relevantBlock) {
-			return false;
-		}
+
 
 		// We always read one extra line, which lies outside the upper
 		// split limit i.e. (end - 1)
 		while (getFilePosition() <= end) {
+			
+			if(skipCurrentSplit) {
+				return false;
+			}
+
 			key.set(pos);
 
 			int newSize = in.readLine(value, maxLineLength, Math.max(maxBytesToConsume(pos), maxLineLength));
@@ -251,8 +260,15 @@ public class xRecordReader implements RecordReader<LongWritable, Text> {
 			value.set(accumulator.toString());
 
 			if (newSize == 0) {
-				return false;
+				if ((currentBlockIndex + 1) == split.getNumberOfFiles()) {
+					return false;
+				}
+				//close ins
+				currentBlockIndex++;
+				openFile();
+				continue;
 			}
+
 			pos += newSize;
 			if (newSize < maxLineLength) {
 				return true;
@@ -260,7 +276,6 @@ public class xRecordReader implements RecordReader<LongWritable, Text> {
 			// line too long. try again
 			LOG.info("Skipped line of size " + newSize + " at pos " + (pos - newSize));
 		}
-
 		return false;
 	}
 

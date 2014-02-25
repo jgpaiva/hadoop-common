@@ -183,5 +183,5 @@ public interface TaskUmbilicalProtocol extends VersionedProtocol {
 
 	
 	/*mgferreira*/
-	boolean checkIfRelevantBlock(long blockId, String filters);
+	boolean checkIfRelevantSplit(long blockId, String filters);
 }

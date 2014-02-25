@@ -83,7 +83,11 @@ class MapTask extends Task {
 
 	private TaskSplitIndex splitMetaInfo = new TaskSplitIndex();
 
+	private static String filters;
+
 	public static boolean relevantBlock = true;
+
+	private static TaskUmbilicalProtocol umbilicalAux;
 	private final static int APPROX_HEADER_LENGTH = 150;
 
 	private static final Log LOG = LogFactory.getLog(MapTask.class.getName());
@@ -426,29 +430,15 @@ class MapTask extends Task {
 		reporter.setInputSplit(inputSplit);
 
 		/*mgferreira*/		
-		String filters = conf.get("filters");
-		
-		if (filters == null) {
-			System.out.println("MAPTASK: there are no filters");
-		}
-		else {
-			long timeA = System.currentTimeMillis();
-			long blockId = ((FileSplit) inputSplit).getBlockId();
-			relevantBlock = umbilical.checkIfRelevantBlock(blockId, filters);
-			long timeB = System.currentTimeMillis();
-			System.out.println("MAPTASK: is block " + blockId + " relevant? " + relevantBlock +
-					"! It took " + (timeB-timeA) + "!");
-		}
+		filters = conf.get("filters");
+		umbilicalAux = umbilical;
 
-		long timeB = System.currentTimeMillis();
 		RecordReader<INKEY,INVALUE> in = isSkipping() ? 
 				new SkippingRecordReader<INKEY,INVALUE>(inputSplit, umbilical, reporter) :
 					new TrackedRecordReader<INKEY,INVALUE>(inputSplit, job, reporter);
 		job.setBoolean("mapred.skip.on", isSkipping());
 
 
-		long timeC = System.currentTimeMillis();
-		System.out.println("phase 1: " + (timeC-timeB));
 
 		int numReduceTasks = conf.getNumReduceTasks();
 		LOG.info("numReduceTasks: " + numReduceTasks);
@@ -461,8 +451,6 @@ class MapTask extends Task {
 		MapRunnable<INKEY,INVALUE,OUTKEY,OUTVALUE> runner =
 				ReflectionUtils.newInstance(job.getMapRunnerClass(), job);
 
-		long timeD = System.currentTimeMillis();
-		System.out.println("phase 2: " + (timeD-timeC));
 		try {
 			runner.run(in, new OldOutputCollector(collector, conf), reporter);
 			collector.flush();
@@ -471,8 +459,6 @@ class MapTask extends Task {
 			in = null;
 			collector.close();
 			collector = null;
-			long timeE = System.currentTimeMillis();
-			System.out.println("phase 3: " + (timeE-timeD));
 		} finally {
 			closeQuietly(in);
 			closeQuietly(collector);
@@ -1835,6 +1821,10 @@ class MapTask extends Task {
 				LOG.info("Ignoring exception during close for " + c, ie);
 			}
 		}
+	}
+
+	public static boolean relevantSplit(long blockId) {
+		return umbilicalAux.checkIfRelevantSplit(blockId, filters);
 	}
 
 }

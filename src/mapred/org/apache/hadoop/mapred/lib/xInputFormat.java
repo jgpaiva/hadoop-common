@@ -37,6 +37,7 @@ import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.mapred.JobConfigurable;
 import org.apache.hadoop.mapred.RecordReader;
 import org.apache.hadoop.mapred.Reporter;
+import org.apache.hadoop.mapred.xFileSplit;
 import org.apache.hadoop.mapred.xRecordReader;
 import org.apache.hadoop.net.NetworkTopology;
 
@@ -47,6 +48,7 @@ implements JobConfigurable {
 	public static final Log LOG = LogFactory.getLog(xInputFormat.class);
 
 	private String FIRST_COLUMN_IDENTIFIER = "";
+	private int NUMBER_OF_BLOCK_PER_SPLIT = 0;
 	static final String NUM_INPUT_FILES = "mapreduce.input.num.files";
 
 	public RecordReader<LongWritable, Text> getRecordReader(
@@ -55,7 +57,7 @@ implements JobConfigurable {
 			Reporter reporter) 
 					throws IOException {
 		reporter.setStatus(genericSplit.toString());
-		return new xRecordReader(job, (FileSplit) genericSplit);
+		return new xRecordReader(job, (xFileSplit) genericSplit);
 	}
 
 	public InputSplit[] getSplits(JobConf job, int numSplits)
@@ -64,16 +66,27 @@ implements JobConfigurable {
 
 		// Save the number of input files in the job-conf
 		job.setLong(NUM_INPUT_FILES, files.length);
-		for (FileStatus file: files) {                // check we have valid files
+		
+		/*mgferreira*/
+		//TODO: aqi comunicar com alguns data nodes e alterar a variavel NUMBER_OF_BLOCK_PER_SPLIT
+		
+		for(int i = 0; i < files.length; i++) {
+			FileStatus file = files[i];
+             // check we have valid files
 			if (file.isDir()) {
 				throw new IOException("Not a file: "+ file.getPath());
 			}
 		}
-
 		// generate splits only for the first columns of each row group
-		ArrayList<FileSplit> splits = new ArrayList<FileSplit>(numSplits);
+		ArrayList<xFileSplit> splits = new ArrayList<xFileSplit>(numSplits);
 		NetworkTopology clusterMap = new NetworkTopology();
-		for (FileStatus file: files) {
+
+		int j = 0;
+		ArrayList<Path> paths = null;
+		ArrayList<Long> blocksIds = null;
+
+		for(int i = 0; i < files.length; i++) {
+			FileStatus file = files[i];
 			Path path = file.getPath();
 			long length = file.getLen();
 			long blockSize = file.getBlockSize();
@@ -87,19 +100,28 @@ implements JobConfigurable {
 				if(!fileName.contains(FIRST_COLUMN_IDENTIFIER)) {
 					continue;
 				}
+				
 				BlockLocation[] blkLocations = fs.getFileBlockLocations(file, 0, length);
 
 				String[] splitHosts = getSplitHosts(blkLocations, 0, splitSize, clusterMap);
 				long blockId = blkLocations[0].getBlockId();
 
-				FileSplit split = new FileSplit(blockId, path, 0, blockSize, splitHosts);		
-				splits.add(split);
+				if ((j % NUMBER_OF_BLOCK_PER_SPLIT) == 0) {
+					paths = new ArrayList<Path>();
+					blocksIds = new ArrayList<Long>();
+					xFileSplit split = new xFileSplit(blocksIds, NUMBER_OF_BLOCK_PER_SPLIT, paths, 0, blockSize, splitHosts);
+					splits.add(split);
+				}
+				paths.add(path);
+				blocksIds.add(new Long(blockId));
+				j++;
 			}
 		}
-		return splits.toArray(new FileSplit[splits.size()]);
+		return splits.toArray(new xFileSplit[splits.size()]);
 	}
 
 	public void configure(JobConf conf) {
 		FIRST_COLUMN_IDENTIFIER = conf.get("first.column.identifier");
+		NUMBER_OF_BLOCK_PER_SPLIT = conf.getInt("blocks.per.split", 1);
 	}
 }

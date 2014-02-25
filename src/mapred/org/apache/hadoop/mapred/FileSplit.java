@@ -30,88 +30,72 @@ import org.apache.hadoop.fs.Path;
  * {@link InputFormat#getRecordReader(InputSplit,JobConf,Reporter)}. 
  */
 public class FileSplit extends org.apache.hadoop.mapreduce.InputSplit 
-implements InputSplit {
-	private Path file;
-	private long start;
-	private long length;
-	private String[] hosts;
+                       implements InputSplit {
+  private Path file;
+  private long start;
+  private long length;
+  private String[] hosts;
+  
+  FileSplit() {}
 
-	/*mgferreira*/
-	private long blockId;
+  /** Constructs a split.
+   * @deprecated
+   * @param file the file name
+   * @param start the position of the first byte in the file to process
+   * @param length the number of bytes in the file to process
+   */
+  @Deprecated
+  public FileSplit(Path file, long start, long length, JobConf conf) {
+    this(file, start, length, (String[])null);
+  }
 
-	FileSplit() {}
+  /** Constructs a split with host information
+   *
+   * @param file the file name
+   * @param start the position of the first byte in the file to process
+   * @param length the number of bytes in the file to process
+   * @param hosts the list of hosts containing the block, possibly null
+   */
+  public FileSplit(Path file, long start, long length, String[] hosts) {
+    this.file = file;
+    this.start = start;
+    this.length = length;
+    this.hosts = hosts;
+  }
 
-	/** Constructs a split.
-	 * @deprecated
-	 * @param file the file name
-	 * @param start the position of the first byte in the file to process
-	 * @param length the number of bytes in the file to process
-	 */
-	@Deprecated
-	public FileSplit(Path file, long start, long length, JobConf conf) {
-		this(file, start, length, (String[])null);
-	}
+  /** The file containing this split's data. */
+  public Path getPath() { return file; }
+  
+  /** The position of the first byte in the file to process. */
+  public long getStart() { return start; }
+  
+  /** The number of bytes in the file to process. */
+  public long getLength() { return length; }
 
-	/** Constructs a split with host information
-	 *
-	 * @param file the file name
-	 * @param start the position of the first byte in the file to process
-	 * @param length the number of bytes in the file to process
-	 * @param hosts the list of hosts containing the block, possibly null
-	 */
-	public FileSplit(Path file, long start, long length, String[] hosts) {
-		this.file = file;
-		this.start = start;
-		this.length = length;
-		this.hosts = hosts;
-	}
+  public String toString() { return file + ":" + start + "+" + length; }
 
-	/*mgferreira*/
-	public FileSplit(long blockId, Path file, long start, long length, String[] hosts) {
-		this(file, start, length, hosts);
-		this.blockId = blockId;
-	}
+  ////////////////////////////////////////////
+  // Writable methods
+  ////////////////////////////////////////////
 
-	/** The file containing this split's data. */
-	public Path getPath() { return file; }
+  public void write(DataOutput out) throws IOException {
+    UTF8.writeString(out, file.toString());
+    out.writeLong(start);
+    out.writeLong(length);
+  }
+  public void readFields(DataInput in) throws IOException {
+    file = new Path(UTF8.readString(in));
+    start = in.readLong();
+    length = in.readLong();
+    hosts = null;
+  }
 
-	/** The position of the first byte in the file to process. */
-	public long getStart() { return start; }
-
-	/** The number of bytes in the file to process. */
-	public long getLength() { return length; }
-
-	public String toString() { return file + ":" + start + "+" + length; }
-
-	////////////////////////////////////////////
-	// Writable methods
-	////////////////////////////////////////////
-
-	public void write(DataOutput out) throws IOException {
-		UTF8.writeString(out, file.toString());
-		out.writeLong(start);
-		out.writeLong(length);
-		out.writeLong(blockId);
-	}
-	public void readFields(DataInput in) throws IOException {
-		file = new Path(UTF8.readString(in));
-		start = in.readLong();
-		length = in.readLong();
-		blockId = in.readLong();
-		hosts = null;
-	}
-
-	public String[] getLocations() throws IOException {
-		if (this.hosts == null) {
-			return new String[]{};
-		} else {
-			return this.hosts;
-		}
-	}
-
-	/* mgferreira*/
-	public long getBlockId() {
-		return blockId;
-	}
-
+  public String[] getLocations() throws IOException {
+    if (this.hosts == null) {
+      return new String[]{};
+    } else {
+      return this.hosts;
+    }
+  }
+  
 }

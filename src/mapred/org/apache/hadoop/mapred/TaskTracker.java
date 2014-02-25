@@ -4627,7 +4627,7 @@ Runnable, TaskTrackerMXBean {
 	
 	/*mgferreira*/
 	@Override
-	public boolean checkIfRelevantBlock(long blockId, String filters) {
+	public boolean checkIfRelevantSplit(long blockId, String filters) {
 		TreeMap<Integer, String> filtersMap = new TreeMap<Integer, String>();
 
 		// <attribute number #>-<predicate>;<attribute number #>-<predicate>...

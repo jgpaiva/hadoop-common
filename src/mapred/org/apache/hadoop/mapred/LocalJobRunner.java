@@ -567,7 +567,7 @@ public class LocalJobRunner implements JobSubmissionProtocol {
     }
 
 	@Override
-	public boolean checkIfRelevantBlock(long blockId, String filters) {
+	public boolean checkIfRelevantSplit(long blockId, String filters) {
 		// TODO Auto-generated method stub
 		return false;
 	}

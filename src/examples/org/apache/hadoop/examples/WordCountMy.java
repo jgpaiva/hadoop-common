@@ -126,6 +126,9 @@ public class WordCountMy extends Configured implements Tool {
     conf.setInputFormat(xInputFormat.class);    
     
     /*mgferreira*/
+    
+    conf.setIfUnset("blocks.per.split", "2");
+    
     /* applying filters: <attribute number #>-<predicate>;<attribute number #>-<predicate> */
     //conf.setIfUnset("filters", "0-manel");
     conf.setIfUnset("relevantAttrs", "0");
