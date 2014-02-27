@@ -1823,8 +1823,12 @@ class MapTask extends Task {
 		}
 	}
 
-	public static boolean relevantSplit(long blockId) {
-		return umbilicalAux.checkIfRelevantSplit(blockId, filters);
+	public static boolean relevantRowGroup(long blockId) {
+		if (filters == null) {
+			return true;
+		}
+
+		return umbilicalAux.checkIfRelevantRowGroup(blockId, filters);
 	}
 
 }

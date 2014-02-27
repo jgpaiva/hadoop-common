@@ -133,7 +133,7 @@ public class IsolationRunner {
     }
 
 	@Override
-	public boolean checkIfRelevantSplit(long blockId, String filters) {
+	public boolean checkIfRelevantRowGroup(long blockId, String filters) {
 		// TODO Auto-generated method stub
 		return false;
 	}

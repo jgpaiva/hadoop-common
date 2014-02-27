@@ -71,7 +71,7 @@ public class xIndexUtils {
 		}
 	}
 
-	public static boolean checkIfRelevantSplit(TreeMap<Integer, String> filters, long blockId) {
+	public static boolean checkIfRelevantRowGroup(TreeMap<Integer, String> filters, long blockId) {
 		if(filters.size() == 0)
 			return true;
 		
