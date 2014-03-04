@@ -93,6 +93,7 @@ public class xRecordReader implements RecordReader<LongWritable, Text> {
 		currentRowGroupIndex = 0;
 		this.job = job;
 		this.split = split;
+
 		openRowGroup();
 	}
 
@@ -233,46 +234,46 @@ public class xRecordReader implements RecordReader<LongWritable, Text> {
 	public synchronized boolean next(LongWritable key, Text value)
 			throws IOException {
 
-		// We always read one extra line, which lies outside the upper
-		// split limit i.e. (end - 1)
-		while (getFilePosition() <= end) {
-			if(skipCurrentRowGroup) {
-				return false;
-			}
-			key.set(pos);
-
-			int newSize = in.readLine(value, maxLineLength, Math.max(maxBytesToConsume(pos), maxLineLength));
-			Text accumulator = new Text(value.toString());
-
-			for (LineReader in : inN) {
-				Text newValue = new Text();
-				long pos = posN.get(0);
-				newSize = in.readLine(newValue, maxLineLength, Math.max(maxBytesToConsume(pos), maxLineLength));
-				accumulator.set(accumulator.toString() + ";" + newValue.toString());
-
-				if (newSize != 0) {
-					pos += newSize;
-					posN.add(0, new Long(pos));
+		while(currentRowGroupIndex < split.getNumberOfFiles()) {
+			while (getFilePosition() <= end) {
+				if(skipCurrentRowGroup) {
+					break;
 				}
-			}
-			value.set(accumulator.toString());
+				key.set(pos);
 
-			if (newSize == 0) {
-				if ((currentRowGroupIndex + 1) == split.getNumberOfFiles()) {
-					return false;
+				int newSize = in.readLine(value, maxLineLength, Math.max(maxBytesToConsume(pos), maxLineLength));
+				Text accumulator = new Text(value.toString());
+
+				for (LineReader in : inN) {
+					Text newValue = new Text();
+					long pos = posN.get(0);
+					newSize = in.readLine(newValue, maxLineLength, Math.max(maxBytesToConsume(pos), maxLineLength));
+					accumulator.set(accumulator.toString() + ";" + newValue.toString());
+
+					if (newSize != 0) {
+						pos += newSize;
+						posN.add(0, new Long(pos));
+					}
 				}
-				close();
-				currentRowGroupIndex++;
-				openRowGroup();
-				continue;
-			}
+				value.set(accumulator.toString());
 
-			pos += newSize;
-			if (newSize < maxLineLength) {
-				return true;
+				if (newSize == 0) {
+					break;
+				}
+
+				pos += newSize;
+				if (newSize < maxLineLength) {
+					return true;
+				}
+				// line too long. try again
+				LOG.info("Skipped line of size " + newSize + " at pos " + (pos - newSize));
 			}
-			// line too long. try again
-			LOG.info("Skipped line of size " + newSize + " at pos " + (pos - newSize));
+			close();
+			currentRowGroupIndex++;
+			if(currentRowGroupIndex == split.getNumberOfFiles()) {
+				break;
+			}
+			openRowGroup();
 		}
 		return false;
 	}

@@ -1827,7 +1827,6 @@ class MapTask extends Task {
 		if (filters == null) {
 			return true;
 		}
-
 		return umbilicalAux.checkIfRelevantRowGroup(blockId, filters);
 	}
 
