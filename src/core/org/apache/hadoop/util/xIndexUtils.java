@@ -74,9 +74,14 @@ public class xIndexUtils {
 	public static boolean checkIfRelevantRowGroup(TreeMap<Integer, String> filters, long blockId) {
 		if(filters.size() == 0)
 			return true;
-		
+
 		ArrayList<Long> split = (ArrayList<Long>) block2split.get(new Long(blockId));
-		
+
+		if(split == null) {
+			System.out.println("I'm reading a non-local block!");
+			return true;
+		}
+
 		for(Integer attrNr : filters.keySet()) {
 			String predicate = filters.get(attrNr);
 			long blockIdOfAttrNr = split.get(attrNr.intValue()).longValue();

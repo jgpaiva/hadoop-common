@@ -32,9 +32,13 @@ public class BlockPlacementPolicyWithColocation extends BlockPlacementPolicy {
 	public static final Log LOG = LogFactory.getLog(NameNode.class.getName());
 
 	/*mgferreira*/
+	private DatanodeDescriptor[] datanodesForCurrentRowGroup;
+
 	private int columnsPerRowGroup;
 	private int currentColumn;
-	private DatanodeDescriptor[] datanodesForCurrentRowGroup;
+
+	private int rowGroupsPerNode;
+	private int currentRowGroup = -1;
 
 	BlockPlacementPolicyWithColocation(Configuration conf,  FSClusterStats stats,
 			NetworkTopology clusterMap) {
@@ -58,6 +62,7 @@ public class BlockPlacementPolicyWithColocation extends BlockPlacementPolicy {
 		/*mgferreira*/
 		this.columnsPerRowGroup = conf.getInt("columns", 1);
 		this.currentColumn = -1;
+		this.rowGroupsPerNode = conf.getInt("number.of.row.groups", 1)/conf.getInt("number.of.nodes", 1);
 		this.datanodesForCurrentRowGroup = null;
 
 	}
@@ -101,21 +106,26 @@ public class BlockPlacementPolicyWithColocation extends BlockPlacementPolicy {
 			HashMap<Node, Node> excludedNodes,
 			long blocksize) {
 
-
 	    System.out.println("PLACEMENT POLICY ADDBLOCK. app data? " + appData);
 		
 	    /* mgferreira */
 		if (appData) { /* we're allocating a new block for the input. not for the output*/
 
 			currentColumn = (currentColumn + 1) % columnsPerRowGroup;
-			
 			if (currentColumn != 0) {
-				LOG.debug("Same row group!");
+				System.out.println("Same row group!");
 				return datanodesForCurrentRowGroup;
 			}
-			LOG.debug("New row group!");
+			System.out.println("New row group!");
+
+			currentRowGroup = (currentRowGroup + 1) % rowGroupsPerNode;
+			if (currentRowGroup != 0) {
+				System.out.println("Same node!");
+				return datanodesForCurrentRowGroup;
+			}
+			System.out.println("New node!");
 		}
-		
+
 		if (numOfReplicas == 0 || clusterMap.getNumOfLeaves()==0) {
 			return new DatanodeDescriptor[0];
 		}

@@ -11,7 +11,7 @@ and reduce task.
 
 <property>
 <name>mapred.task.cache.levels</name>
-<value>1</value>
+<value>2</value>
 <description> This is the max level of the task cache. For example, if
 the level is 2, the tasks cached are at the host level and at the rack level.
 </description>

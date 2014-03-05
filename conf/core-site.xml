@@ -29,6 +29,17 @@ determine the host, port, etc. for a filesystem.</description>
 </property>
 
 <property>
+<name>number.of.row.groups</name>
+<value>6</value>
+</property>
+
+<property>
+<name>number.of.nodes</name>
+<value>3</value>
+</property>
+
+
+<property>
 <name>first.column.identifier</name>
 <value>_0_</value>
 <description> Sequence of characters that identifies the first columns of row groups </description>
