@@ -259,6 +259,11 @@ public class BlockPlacementPolicyWithColocation extends BlockPlacementPolicy {
 			List<DatanodeDescriptor> results, boolean avoidStaleNodes)
 					throws NotEnoughReplicasException {
 		// if no local machine, randomly choose one node
+		/*mgferreira*/
+		if(appData) {
+			return chooseRandom(NodeBase.ROOT, excludedNodes, blocksize,
+					maxNodesPerRack, results, avoidStaleNodes);
+		}
 		if (localMachine == null)
 			return chooseRandom(NodeBase.ROOT, excludedNodes, blocksize,
 					maxNodesPerRack, results, avoidStaleNodes);

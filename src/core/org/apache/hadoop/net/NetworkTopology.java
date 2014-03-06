@@ -43,6 +43,9 @@ public class NetworkTopology {
   public final static int DEFAULT_HOST_LEVEL = 2;
   public static final Log LOG = 
     LogFactory.getLog(NetworkTopology.class);
+  
+  /*mgferreira*/
+  public int nextNode = 0;
     
   public static class InvalidTopologyException extends RuntimeException {
     private static final long serialVersionUID = 1L;
@@ -640,7 +643,9 @@ public class NetworkTopology {
       netlock.readLock().unlock();
     }
   }
-    
+
+  /*mgferreira*/
+  //not random anymore. roundroubin
   private Node chooseRandom(String scope, String excludedScope){
     if (excludedScope != null) {
       if (scope.startsWith(excludedScope)) {
@@ -666,8 +671,10 @@ public class NetworkTopology {
         numOfDatanodes -= ((InnerNode)node).getNumOfLeaves();
       }
     }
-    int leaveIndex = r.nextInt(numOfDatanodes);
-    return innerNode.getLeaf(leaveIndex, node);
+    System.out.println("choosing node with index: " + nextNode);
+    Node n = innerNode.getLeaf(nextNode, node);
+    nextNode = (nextNode + 1) % numOfDatanodes;
+    return n;
   }
 
   /** return leaves in <i>scope</i>
