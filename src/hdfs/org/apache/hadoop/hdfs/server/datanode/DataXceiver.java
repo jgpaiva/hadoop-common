@@ -549,18 +549,6 @@ class DataXceiver implements Runnable, FSConstants {
 			oos.writeObject(xIndexUtils.index);
 			System.out.println("bytes: " + byteOut.size());
 
-			int strings = 0;
-			int longs = 0;
-			for (TreeMap<String, TreeSet<Long>> map : xIndexUtils.index.values()) {
-				strings += map.keySet().size();
-				
-				for (TreeSet<Long> tree : map.values()) {
-					longs += tree.size();
-				}
-			}
-			System.out.println("strings: " + strings);
-			System.out.println("longs: " + longs);
-
 	        System.out.println("#########################");		
 	        
 

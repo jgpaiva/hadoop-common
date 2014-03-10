@@ -27,12 +27,14 @@ public class xIndexUtils {
 		long start = System.currentTimeMillis();
 		long elapsed;
 		
+		Long blockIdL = new Long(blockId);
+		
 		if(currentColumnIndex == null) {
 			initializeIndexForCurrentColumn();
 			
 			if(currentColumnNr == 0) {
 				blockIdOfFirstBlock = blockId;
-				block2split.put(new Long(blockId), new ArrayList<Long>());
+				block2split.put(blockIdL, new ArrayList<Long>());
 			}
 			elapsed = System.currentTimeMillis()-start;
 			System.out.println("initializeIndex: " + elapsed);
@@ -59,13 +61,13 @@ public class xIndexUtils {
 
 		start = System.currentTimeMillis();
 
-		addEntriesToIndex(entriesToAdd, blockId);
+		addEntriesToIndex(entriesToAdd, blockIdL);
 		
 		elapsed = System.currentTimeMillis()-start;
 
 		if(lastPacket) {
-			ArrayList<Long> split = (ArrayList<Long>) block2split.get(blockIdOfFirstBlock);
-			split.add(new Long(blockId));
+			ArrayList<Long> split = (ArrayList<Long>) block2split.get(new Long(blockIdOfFirstBlock));
+			split.add(blockIdL);
 			currentColumnIndex = null;
 		}
 	}
@@ -78,7 +80,7 @@ public class xIndexUtils {
 		}
 	}
 
-	private static void addEntriesToIndex(String[] entriesToAdd, long blockId) {
+	private static void addEntriesToIndex(String[] entriesToAdd, Long blockId) {
 		for(String entry : entriesToAdd) {
 			
 			TreeSet<Long> blocksForEntry = currentColumnIndex.get(entry);
@@ -86,7 +88,7 @@ public class xIndexUtils {
 				blocksForEntry = new TreeSet<Long>();
 				currentColumnIndex.put(new String(entry), new TreeSet<Long>());
 			}
-			blocksForEntry.add(new Long(blockId));
+			blocksForEntry.add(blockId);
 		}
 	}
 
