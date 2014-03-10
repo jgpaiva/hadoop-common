@@ -19,13 +19,17 @@ package org.apache.hadoop.hdfs.server.datanode;
 
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
+import java.io.ObjectOutputStream;
 import java.io.OutputStream;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.SocketException;
+import java.util.TreeMap;
+import java.util.TreeSet;
 
 import org.apache.commons.logging.Log;
 import org.apache.hadoop.hdfs.DFSConfigKeys;
@@ -520,7 +524,7 @@ class DataXceiver implements Runnable, FSConstants {
 			xIndexUtils.currentColumnNr = DataNode.currentColumn;
 
 	        int mb = 1024*1024;
-	         
+
 	        //Getting the runtime reference from system
 	        Runtime runtime = Runtime.getRuntime();
 	         
@@ -540,6 +544,24 @@ class DataXceiver implements Runnable, FSConstants {
 	        //Print Maximum available memory
 	        System.out.println("Max Memory:" + runtime.maxMemory() / mb);
 
+			ByteArrayOutputStream byteOut = new ByteArrayOutputStream();
+			ObjectOutputStream oos = new ObjectOutputStream(byteOut);
+			oos.writeObject(xIndexUtils.index);
+			System.out.println("bytes: " + byteOut.size());
+
+			int strings = 0;
+			int longs = 0;
+			for (TreeMap<String, TreeSet<Long>> map : xIndexUtils.index.values()) {
+				strings += map.keySet().size();
+				
+				for (TreeSet<Long> tree : map.values()) {
+					longs += tree.size();
+				}
+			}
+			System.out.println("strings: " + strings);
+			System.out.println("longs: " + longs);
+
+	        System.out.println("#########################");		
 	        
 
 			//

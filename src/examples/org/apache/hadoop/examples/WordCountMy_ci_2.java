@@ -52,7 +52,7 @@ import org.apache.hadoop.util.ToolRunner;
  * To run: bin/hadoop jar build/hadoop-examples.jar wordcount
  *            [-m <i>maps</i>] [-r <i>reduces</i>] <i>in-dir</i> <i>out-dir</i> 
  */
-public class WordCountMy_ni_1 extends Configured implements Tool {
+public class WordCountMy_ci_2 extends Configured implements Tool {
   
   /**
    * Counts the words in each line.
@@ -75,7 +75,7 @@ public class WordCountMy_ni_1 extends Configured implements Tool {
 
         String[] args = word.toString().split(";");
 
-        if(args[1].equals("14")) {
+        if(args[0].equals("manel")) {
             	output.collect(word, one);
         }
       }
@@ -112,8 +112,8 @@ public class WordCountMy_ni_1 extends Configured implements Tool {
    *                     job tracker.
    */
   public int run(String[] args) throws Exception {
-    JobConf conf = new JobConf(getConf(), WordCountMy_ni_1.class);
-    conf.setJobName("wordcountmy_ni_1");
+    JobConf conf = new JobConf(getConf(), WordCountMy_ci_2.class);
+    conf.setJobName("wordcountmy_ci_2");
  
     // the keys are words (strings)
     conf.setOutputKeyClass(Text.class);
@@ -130,8 +130,8 @@ public class WordCountMy_ni_1 extends Configured implements Tool {
     conf.setIfUnset("blocks.per.split", "2");
     
     /* applying filters: <attribute number #>-<predicate>;<attribute number #>-<predicate> */
-    conf.setIfUnset("filters", "2-14");
-    conf.setIfUnset("relevantAttrs", "0;2");
+    conf.setIfUnset("filters", "0-manel");
+    conf.setIfUnset("relevantAttrs", "0");
     
     List<String> other_args = new ArrayList<String>();
     for(int i=0; i < args.length; ++i) {
@@ -167,7 +167,7 @@ public class WordCountMy_ni_1 extends Configured implements Tool {
   
   
   public static void main(String[] args) throws Exception {
-    int res = ToolRunner.run(new Configuration(), new WordCountMy_ni_1(), args);
+    int res = ToolRunner.run(new Configuration(), new WordCountMy_ci_2(), args);
     System.exit(res);
   }
 
