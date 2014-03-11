@@ -1,10 +1,5 @@
 package org.apache.hadoop.util;
 
-import java.io.ByteArrayOutputStream;
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.ObjectOutputStream;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.TreeMap;
@@ -37,7 +32,6 @@ public class xIndexUtils {
 				block2split.put(blockIdL, new ArrayList<Long>());
 			}
 			elapsed = System.currentTimeMillis()-start;
-			System.out.println("initializeIndex: " + elapsed);
 		}
 		
 
@@ -82,11 +76,10 @@ public class xIndexUtils {
 
 	private static void addEntriesToIndex(String[] entriesToAdd, Long blockId) {
 		for(String entry : entriesToAdd) {
-			
-			TreeSet<Long> blocksForEntry = currentColumnIndex.get(entry);
+			TreeSet<Long> blocksForEntry = currentColumnIndex.get(new String(entry));
 			if(blocksForEntry == null) {
 				blocksForEntry = new TreeSet<Long>();
-				currentColumnIndex.put(new String(entry), new TreeSet<Long>());
+				currentColumnIndex.put(new String(entry), blocksForEntry);
 			}
 			blocksForEntry.add(blockId);
 		}
