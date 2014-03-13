@@ -1426,7 +1426,7 @@ public class JobInProgress {
   public synchronized Task obtainNewNodeOrRackLocalMapTask(
       TaskTrackerStatus tts, int clusterSize, int numUniqueHosts)
   throws IOException {
-    return obtainNewMapTaskCommon(tts, clusterSize, numUniqueHosts, maxLevel);
+    return obtainNewMapTaskCommon(tts, clusterSize, numUniqueHosts, 1);
   }
   
   public synchronized Task obtainNewNonLocalMapTask(TaskTrackerStatus tts,
@@ -1434,7 +1434,7 @@ public class JobInProgress {
                                                     int numUniqueHosts)
       throws IOException {
     return obtainNewMapTaskCommon(tts, clusterSize, numUniqueHosts, 
-        NON_LOCAL_CACHE_LEVEL);
+        1);
   }
   
   public void schedulingOpportunity() {
