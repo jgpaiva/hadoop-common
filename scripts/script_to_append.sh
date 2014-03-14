@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 
-for i in {321..360..20}
+for i in {2..320..2}
 do
 	A=large
 	B=_0_.txt
-	
-        size=${#i}	
+		
+	size=${#i}
 	if [ "$size" != 3 ]
 	 then
 		A=large0
@@ -20,9 +20,8 @@ do
 
 	FILE=$A$i$B
 
-	COMMAND='cp large_1/large301_0_.txt large_1/'
+	COMMAND="echo \"manel\" >> large_10/"
 	COMMAND=$COMMAND$FILE
 
-	$COMMAND
-
+        echo "$COMMAND"
 done
