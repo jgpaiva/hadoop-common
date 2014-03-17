@@ -20,12 +20,7 @@ package org.apache.hadoop.mapred;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.lang.management.ManagementFactory;
-import java.lang.reflect.Field;
 import java.util.ArrayList;
-import java.util.TreeMap;
-import java.util.TreeSet;
-
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
@@ -33,8 +28,6 @@ import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.Seekable;
-import org.apache.hadoop.util.xIndexUtils;
-import org.apache.hadoop.hdfs.server.datanode.DataNode;
 import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.io.compress.CodecPool;
@@ -63,7 +56,7 @@ public class xRecordReader implements RecordReader<LongWritable, Text> {
 	private ArrayList<Seekable> filePositionN = new ArrayList<Seekable>();
 	private ArrayList<Long> posN = new ArrayList<Long>();
 	private int currentRowGroupIndex;
-	private boolean skipCurrentRowGroup;
+	private int relevantBlock;
 
 	private String FIRST_COLUMN_IDENTIFIER;
 
@@ -99,12 +92,13 @@ public class xRecordReader implements RecordReader<LongWritable, Text> {
 
 	private void openRowGroup() throws IOException {
 		long currentBlockId = split.getBlocksIds().get(currentRowGroupIndex);
-		skipCurrentRowGroup = !MapTask.relevantRowGroup(currentBlockId);
+		relevantBlock = MapTask.relevantRowGroup(currentBlockId);
+		org.apache.hadoop.util.LineReader.relevantBlock = relevantBlock;
 		array2inputStreams.clear();
 		inN.clear();
 		posN.clear();
 
-		if(!skipCurrentRowGroup) {
+		if(relevantBlock != -1) {
 			System.out.println("block " + currentBlockId + " is relevant!");
 			this.maxLineLength = job.getInt("mapred.linerecordreader.maxlength", Integer.MAX_VALUE);			
 			FIRST_COLUMN_IDENTIFIER = job.get("first.column.identifier");
@@ -236,7 +230,7 @@ public class xRecordReader implements RecordReader<LongWritable, Text> {
 
 		while(currentRowGroupIndex < split.getNumberOfFiles()) {
 			while (getFilePosition() <= end) {
-				if(skipCurrentRowGroup) {
+				if(relevantBlock == -1) {
 					break;
 				}
 				key.set(pos);

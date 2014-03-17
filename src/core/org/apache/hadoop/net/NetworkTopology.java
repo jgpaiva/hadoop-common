@@ -40,7 +40,7 @@ import org.apache.hadoop.util.ReflectionUtils;
  */
 public class NetworkTopology {
   public final static String DEFAULT_RACK = "/default-rack";
-  public final static int DEFAULT_HOST_LEVEL = 1;
+  public final static int DEFAULT_HOST_LEVEL = 2; 
   public static final Log LOG = 
     LogFactory.getLog(NetworkTopology.class);
   

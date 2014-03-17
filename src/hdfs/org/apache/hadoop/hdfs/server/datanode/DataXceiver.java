@@ -116,6 +116,14 @@ class DataXceiver implements Runnable, FSConstants {
 				else
 					datanode.myMetrics.incrReadsFromRemoteClient();
 				break;
+			case DataTransferProtocol.OP_READ_APPBLOCK:
+				readAppBlock( in );
+				datanode.myMetrics.addReadBlockOp(DataNode.now() - startTime);
+				if (local)
+					datanode.myMetrics.incrReadsFromLocalClient();
+				else
+					datanode.myMetrics.incrReadsFromRemoteClient();
+				break;
 			case DataTransferProtocol.OP_WRITE_BLOCK:
 				writeBlock( in );
 				datanode.myMetrics.addWriteBlockOp(DataNode.now() - startTime);
@@ -125,13 +133,13 @@ class DataXceiver implements Runnable, FSConstants {
 					datanode.myMetrics.incrWritesFromRemoteClient();
 				break;
 			case DataTransferProtocol.OP_WRITE_APPBLOCK:         /*mgferreira*/
-			writeAppBlock( in );
-			datanode.myMetrics.addWriteBlockOp(DataNode.now() - startTime);
-			if (local)
-				datanode.myMetrics.incrWritesFromLocalClient();
-			else
-				datanode.myMetrics.incrWritesFromRemoteClient();
-			break;
+				writeAppBlock( in );
+				datanode.myMetrics.addWriteBlockOp(DataNode.now() - startTime);
+				if (local)
+					datanode.myMetrics.incrWritesFromLocalClient();
+				else
+					datanode.myMetrics.incrWritesFromRemoteClient();
+				break;
 			case DataTransferProtocol.OP_REPLACE_BLOCK: // for balancing purpose; send to a destination
 				replaceBlock(in);
 				datanode.myMetrics.addReplaceBlockOp(DataNode.now() - startTime);
@@ -215,6 +223,120 @@ class DataXceiver implements Runnable, FSConstants {
 					}
 
 					out.writeShort(DataTransferProtocol.OP_STATUS_SUCCESS); // send op status
+					long read = blockSender.sendBlock(out, baseStream, null); // send data
+
+					if (blockSender.isBlockReadFully()) {
+						// See if client verification succeeded. 
+						// This is an optional response from client.
+						try {
+							if (in.readShort() == DataTransferProtocol.OP_STATUS_CHECKSUM_OK  && 
+									datanode.blockScanner != null) {
+								datanode.blockScanner.verifiedByClient(block);
+							}
+						} catch (IOException ignored) {}
+					}
+
+					datanode.myMetrics.incrBytesRead((int) read);
+					datanode.myMetrics.incrBlocksRead();
+				} catch ( SocketException ignored ) {
+					// Its ok for remote side to close the connection anytime.
+					datanode.myMetrics.incrBlocksRead();
+				} catch ( IOException ioe ) {
+					/* What exactly should we do here?
+					 * Earlier version shutdown() datanode if there is disk error.
+					 */
+					LOG.warn(datanode.dnRegistration +  ":Got exception while serving " + 
+							block + " to " + s.getInetAddress() + ":\n" + 
+							StringUtils.stringifyException(ioe) );
+					throw ioe;
+				} finally {
+					IOUtils.closeStream(out);
+					IOUtils.closeStream(blockSender);
+				}
+	}
+
+	/*mgferreira*/
+	private void readAppBlock(DataInputStream in) throws IOException {
+		//
+		// Read in the header
+		//
+
+		/*mgferreira*/
+		String filters = Text.readString(in);
+
+		long blockId = in.readLong();
+
+		//aceder ao indice
+		Block block = new Block( blockId, 0 , in.readLong());
+
+		long startOffset = in.readLong();
+		long length = in.readLong();
+		String clientName = Text.readString(in);
+		Token<BlockTokenIdentifier> accessToken = new Token<BlockTokenIdentifier>();
+		accessToken.readFields(in);
+		OutputStream baseStream = NetUtils.getOutputStream(s, 
+				datanode.socketWriteTimeout);
+		DataOutputStream out = new DataOutputStream(
+				new BufferedOutputStream(baseStream, SMALL_BUFFER_SIZE));
+
+		if (datanode.isBlockTokenEnabled) {
+			try {
+				datanode.blockTokenSecretManager.checkAccess(accessToken, null, block,
+						BlockTokenSecretManager.AccessMode.READ);
+			} catch (InvalidToken e) {
+				try {
+					out.writeShort(DataTransferProtocol.OP_STATUS_ERROR_ACCESS_TOKEN);
+					out.flush();
+					throw new IOException("Access token verification failed, for client "
+							+ remoteAddress + " for OP_READ_BLOCK for " + block);
+				} finally {
+					IOUtils.closeStream(out);
+				}
+			}
+		}
+		// send the block
+		BlockSender blockSender = null;
+		final String clientTraceFmt =
+				clientName.length() > 0 && ClientTraceLog.isInfoEnabled()
+				? String.format(DN_CLIENTTRACE_FORMAT, localAddress, remoteAddress,
+						"%d", "HDFS_READ", clientName, "%d", 
+						datanode.dnRegistration.getStorageID(), block, "%d")
+						: datanode.dnRegistration + " Served " + block + " to " +
+						s.getInetAddress();
+				try {
+					try {
+						blockSender = new BlockSender(block, startOffset, length,
+								true, true, false, datanode, clientTraceFmt);
+					} catch(IOException e) {
+						out.writeShort(DataTransferProtocol.OP_STATUS_ERROR);
+						throw e;
+					}
+
+					/*mgferreira*/
+					byte protocol = 0;
+					TreeMap<Integer, String> filtersMap = new TreeMap<Integer, String>();
+
+					// <attribute number #>-<predicate>;<attribute number #>-<predicate>...
+					if(filters != null) {
+						String[] filtersArr = filters.split(";");
+						for (String filter : filtersArr) {
+							Integer attrNr = Integer.parseInt(filter.split("-")[0]);
+							String attrValue = filter.split("-")[1];
+							filtersMap.put(attrNr, attrValue);
+							System.out.println("there are filters!: " + attrNr + " - " + attrValue);
+						}
+					}
+					if (xIndexUtils.checkIfRelevantRowGroup(filtersMap, blockId) == -1) {
+						System.out.println("read block " + blockId + " for another datanode");
+						protocol = DataTransferProtocol.OP_READ_IRRELEVANT_APPBLOCK;
+						out.writeShort(protocol); // send op status
+						out.flush();
+						IOUtils.closeStream(out);
+						return;
+					}
+					protocol = DataTransferProtocol.OP_STATUS_SUCCESS;
+					out.writeShort(protocol); // send op status
+
 					long read = blockSender.sendBlock(out, baseStream, null); // send data
 
 					if (blockSender.isBlockReadFully()) {
@@ -523,34 +645,34 @@ class DataXceiver implements Runnable, FSConstants {
 			}
 			xIndexUtils.currentColumnNr = DataNode.currentColumn;
 
-	        int mb = 1024*1024;
+			int mb = 1024*1024;
 
-	        //Getting the runtime reference from system
-	        Runtime runtime = Runtime.getRuntime();
-	         
-	        System.out.println("##### Heap utilization statistics [MB] #####");
-	         
-	        //Print used memory
-	        System.out.println("Used Memory:"
-	            + (runtime.totalMemory() - runtime.freeMemory()) / mb);
-	 
-	        //Print free memory
-	        System.out.println("Free Memory:"
-	            + runtime.freeMemory() / mb);
-	         
-	        //Print total available memory
-	        System.out.println("Total Memory:" + runtime.totalMemory() / mb);
-	 
-	        //Print Maximum available memory
-	        System.out.println("Max Memory:" + runtime.maxMemory() / mb);
+			//Getting the runtime reference from system
+			Runtime runtime = Runtime.getRuntime();
+
+			System.out.println("##### Heap utilization statistics [MB] #####");
+
+			//Print used memory
+			System.out.println("Used Memory:"
+					+ (runtime.totalMemory() - runtime.freeMemory()) / mb);
+
+			//Print free memory
+			System.out.println("Free Memory:"
+					+ runtime.freeMemory() / mb);
+
+			//Print total available memory
+			System.out.println("Total Memory:" + runtime.totalMemory() / mb);
+
+			//Print Maximum available memory
+			System.out.println("Max Memory:" + runtime.maxMemory() / mb);
 
 			ByteArrayOutputStream byteOut = new ByteArrayOutputStream();
 			ObjectOutputStream oos = new ObjectOutputStream(byteOut);
 			oos.writeObject(xIndexUtils.index);
 			System.out.println("bytes: " + byteOut.size());
 
-	        System.out.println("#########################");		
-	        
+			System.out.println("#########################");		
+
 
 			//
 			// Open network conn to backup machine, if 

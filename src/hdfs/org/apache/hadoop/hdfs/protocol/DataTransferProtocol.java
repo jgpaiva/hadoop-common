@@ -45,6 +45,8 @@ public interface DataTransferProtocol {
   // Processed at datanode stream-handler
   public static final byte OP_WRITE_BLOCK = (byte) 80;
   public static final byte OP_WRITE_APPBLOCK = (byte) 86; /*mgferreira*/
+  public static final byte OP_READ_APPBLOCK = (byte) 87; /*mgferreira*/
+  public static final byte OP_READ_IRRELEVANT_APPBLOCK = (byte) 88; /*mgferreira*/
   public static final byte OP_READ_BLOCK = (byte) 81;
   /**
    * @deprecated As of version 15, OP_READ_METADATA is no longer supported

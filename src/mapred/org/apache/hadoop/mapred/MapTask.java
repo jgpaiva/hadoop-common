@@ -51,6 +51,7 @@ import org.apache.hadoop.fs.FileSystem.Statistics;
 import org.apache.hadoop.fs.LocalDirAllocator;
 import org.apache.hadoop.fs.LocalFileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.hdfs.DFSClient;
 import org.apache.hadoop.io.DataInputBuffer;
 import org.apache.hadoop.io.RawComparator;
 import org.apache.hadoop.io.SequenceFile;
@@ -72,18 +73,15 @@ import org.apache.hadoop.util.Progress;
 import org.apache.hadoop.util.QuickSort;
 import org.apache.hadoop.util.ReflectionUtils;
 import org.apache.hadoop.util.StringUtils;
-import org.apache.hadoop.util.xIndexUtils;
 
 /** A Map task. */
-class MapTask extends Task {
+public class MapTask extends Task {
 	/**
 	 * The size of each record in the index file for the map-outputs.
 	 */
 	public static final int MAP_OUTPUT_INDEX_RECORD_LENGTH = 24;
 
 	private TaskSplitIndex splitMetaInfo = new TaskSplitIndex();
-
-	private static String filters;
 
 	public static boolean relevantBlock = true;
 
@@ -430,7 +428,7 @@ class MapTask extends Task {
 		reporter.setInputSplit(inputSplit);
 
 		/*mgferreira*/		
-		filters = conf.get("filters");
+		DFSClient.filters = conf.get("filters");
 		umbilicalAux = umbilical;
 
 		RecordReader<INKEY,INVALUE> in = isSkipping() ? 
@@ -1823,11 +1821,11 @@ class MapTask extends Task {
 		}
 	}
 
-	public static boolean relevantRowGroup(long blockId) {
-		if (filters == null) {
-			return true;
+	public static int relevantRowGroup(long blockId) {
+		if (DFSClient.filters == null) {
+			return 1;
 		}
-		return umbilicalAux.checkIfRelevantRowGroup(blockId, filters);
+		return umbilicalAux.checkIfRelevantRowGroup(blockId, DFSClient.filters);
 	}
 
 }

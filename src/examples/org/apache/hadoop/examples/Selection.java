@@ -68,17 +68,19 @@ public class Selection extends Configured implements Tool {
 
 	  public void configure(JobConf job) {        
 		  String filters = job.get("filters");
-		  String[] filtersByAttr = filters.split(";");
+		  if (filters != null) {
+	
+		  	String[] filtersByAttr = filters.split(";");
 		  
-		  for (String filterAttr : filtersByAttr) {
-	        	String[] attrNrAndFilter = filterAttr.split("-");
-	        	int attrNr = Integer.parseInt(attrNrAndFilter[0]);
-	        	String filter = attrNrAndFilter[1];
+		 	 for (String filterAttr : filtersByAttr) {
+	        		String[] attrNrAndFilter = filterAttr.split("-");
+	        		int attrNr = Integer.parseInt(attrNrAndFilter[0]);
+	        		String filter = attrNrAndFilter[1];
 
-	        	filtersMap.put(new Integer(attrNr), filter);
-		  }
-		  
-		  System.out.println(filtersMap);
+	        		filtersMap.put(new Integer(attrNr), filter);
+		  	}
+		  	System.out.println(filtersMap);
+                  }
 	  }
     
     private final static IntWritable one = new IntWritable(1);

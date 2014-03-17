@@ -85,16 +85,17 @@ public class xIndexUtils {
 		}
 	}
 
-	public static boolean checkIfRelevantRowGroup(TreeMap<Integer, String> filters, long blockId) {
+	//-1=irrelevant, 1=relevant, 0=non_local_block
+	public static int checkIfRelevantRowGroup(TreeMap<Integer, String> filters, long blockId) {
 
 		if(filters.size() == 0)
-			return true;
+			return 1;
 
 		ArrayList<Long> split = (ArrayList<Long>) block2split.get(new Long(blockId));
 
 		if(split == null) {
 			System.out.println("I'm reading a non-local block!");
-			return true;
+			return 0;
 		}
 
 		for(Integer attrNr : filters.keySet()) {
@@ -104,10 +105,9 @@ public class xIndexUtils {
 			TreeSet<Long> relevantBlocks = index.get(attrNr).get(predicate);
 			
 			if((relevantBlocks == null) || (!relevantBlocks.contains(new Long(blockIdOfAttrNr)))) {
-				return false;
+				return -1;
 			}
 		}
-
-		return true;
+		return 1;
 	}
 }
