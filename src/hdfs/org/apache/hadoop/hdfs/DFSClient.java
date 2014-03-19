@@ -3731,11 +3731,6 @@ public class DFSClient implements FSConstants, java.io.Closeable {
       }
       return result;
     }
-
-    /* mgferreira */
-    private boolean blockBelongsToAppData() {
-		return (src.contains(".txt") || src.contains(".gz"));
-	}
   
     private LocatedBlock locateFollowingBlock(long start,
                                               DatanodeInfo[] excludedNodes
@@ -3747,9 +3742,6 @@ public class DFSClient implements FSConstants, java.io.Closeable {
         while (true) {
           try {
             if (serverSupportsHdfs630) {
-            	if(blockBelongsToAppData()) {
-            		return namenode.addBlock(src, clientName, excludedNodes, true);
-            	}
             	return namenode.addBlock(src, clientName, excludedNodes);
             } else {
               return namenode.addBlock(src, clientName);

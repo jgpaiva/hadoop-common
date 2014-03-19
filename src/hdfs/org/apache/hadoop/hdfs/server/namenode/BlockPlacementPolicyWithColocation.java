@@ -39,6 +39,8 @@ public class BlockPlacementPolicyWithColocation extends BlockPlacementPolicy {
 
 	private int rowGroupsPerNode;
 	private int currentRowGroup = -1;
+	
+	private String src;
 
 	BlockPlacementPolicyWithColocation(Configuration conf,  FSClusterStats stats,
 			NetworkTopology clusterMap) {
@@ -73,6 +75,7 @@ public class BlockPlacementPolicyWithColocation extends BlockPlacementPolicy {
 			DatanodeDescriptor writer,
 			List<DatanodeDescriptor> chosenNodes,
 			long blocksize) {
+		this.src = srcPath;
 		return chooseTarget(numOfReplicas, writer, chosenNodes, null, blocksize);
 	}
 
@@ -83,9 +86,9 @@ public class BlockPlacementPolicyWithColocation extends BlockPlacementPolicy {
 			List<DatanodeDescriptor> chosenNodes,
 			HashMap<Node, Node> excludedNodes,
 			long blocksize) {
+		this.src = srcPath;
 		return chooseTarget(numOfReplicas, writer, chosenNodes, excludedNodes, blocksize);
 	}
-
 
 	/** {@inheritDoc} */
 	@Override
@@ -105,12 +108,10 @@ public class BlockPlacementPolicyWithColocation extends BlockPlacementPolicy {
 			List<DatanodeDescriptor> chosenNodes,
 			HashMap<Node, Node> excludedNodes,
 			long blocksize) {
-
-	    System.out.println("PLACEMENT POLICY ADDBLOCK. app data? " + appData);
 		
 	    /* mgferreira */
-		if (appData) { /* we're allocating a new block for the input. not for the output*/
-
+		if ((src.contains(".txt") || (src.contains(".gz")))) { /* we're allocating a new block for the input. not for the output*/
+			appData = true;
 			currentColumn = (currentColumn + 1) % columnsPerRowGroup;
 			if (currentColumn != 0) {
 				System.out.println("Same row group!");
@@ -124,6 +125,9 @@ public class BlockPlacementPolicyWithColocation extends BlockPlacementPolicy {
 				return datanodesForCurrentRowGroup;
 			}
 			System.out.println("New node!");
+		}
+		else {
+			appData = false;
 		}
 
 		if (numOfReplicas == 0 || clusterMap.getNumOfLeaves()==0) {

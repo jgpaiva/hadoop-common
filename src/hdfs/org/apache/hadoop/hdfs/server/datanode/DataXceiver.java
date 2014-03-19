@@ -665,12 +665,6 @@ class DataXceiver implements Runnable, FSConstants {
 
 			//Print Maximum available memory
 			System.out.println("Max Memory:" + runtime.maxMemory() / mb);
-
-			ByteArrayOutputStream byteOut = new ByteArrayOutputStream();
-			ObjectOutputStream oos = new ObjectOutputStream(byteOut);
-			oos.writeObject(xIndexUtils.index);
-			System.out.println("bytes: " + byteOut.size());
-
 			System.out.println("#########################");		
 
 
