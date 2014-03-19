@@ -786,17 +786,6 @@ public class NameNode implements ClientProtocol, DatanodeProtocol,
       myMetrics.incrNumAddBlockOps();
     return locatedBlock;
   }
-
-  /*mgferreira*/
-  @Override
-  public LocatedBlock addBlock(String src, String clientName, DatanodeInfo[] excludedNodes, boolean appBlock) 
-		  throws IOException {
-
-	  	BlockPlacementPolicyWithColocation.appData = true;
-	  	LocatedBlock lb = addBlock(src, clientName, excludedNodes);
-	  	BlockPlacementPolicyWithColocation.appData = false;
-	  	return lb;
-}
  
   /**
    * The client needs to give up on the block.

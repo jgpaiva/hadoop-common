@@ -593,8 +593,4 @@ public interface ClientProtocol extends VersionedProtocol {
    */
   public void cancelDelegationToken(Token<DelegationTokenIdentifier> token)
       throws IOException;
-
-  /*mgferreira*/
-public LocatedBlock addBlock(String src, String clientName,
-		DatanodeInfo[] excludedNodes, boolean b) throws IOException;
 }

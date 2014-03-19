@@ -24,7 +24,6 @@ import org.apache.hadoop.net.NodeBase;
 
 @InterfaceAudience.Private
 public class BlockPlacementPolicyWithColocation extends BlockPlacementPolicy {
-	public static boolean appData;
 	protected boolean considerLoad; 
 	protected NetworkTopology clusterMap;
 	private FSClusterStats stats;
@@ -111,7 +110,8 @@ public class BlockPlacementPolicyWithColocation extends BlockPlacementPolicy {
 		
 	    /* mgferreira */
 		if ((src.contains(".txt") || (src.contains(".gz")))) { /* we're allocating a new block for the input. not for the output*/
-			appData = true;
+			NetworkTopology.appData = true;
+			System.out.println("source file: " + src);
 			currentColumn = (currentColumn + 1) % columnsPerRowGroup;
 			if (currentColumn != 0) {
 				System.out.println("Same row group!");
@@ -127,7 +127,7 @@ public class BlockPlacementPolicyWithColocation extends BlockPlacementPolicy {
 			System.out.println("New node!");
 		}
 		else {
-			appData = false;
+			NetworkTopology.appData = false;
 		}
 
 		if (numOfReplicas == 0 || clusterMap.getNumOfLeaves()==0) {
@@ -264,11 +264,11 @@ public class BlockPlacementPolicyWithColocation extends BlockPlacementPolicy {
 					throws NotEnoughReplicasException {
 		// if no local machine, randomly choose one node
 		/*mgferreira*/
-		if(appData) {
+		if(NetworkTopology.appData == true) {
 			return chooseRandom(NodeBase.ROOT, excludedNodes, blocksize,
 					maxNodesPerRack, results, avoidStaleNodes);
 		}
-		if (localMachine == null)
+		System.out.println("else");
 			return chooseRandom(NodeBase.ROOT, excludedNodes, blocksize,
 					maxNodesPerRack, results, avoidStaleNodes);
 
