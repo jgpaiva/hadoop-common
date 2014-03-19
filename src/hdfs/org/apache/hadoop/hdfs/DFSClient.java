@@ -3734,7 +3734,7 @@ public class DFSClient implements FSConstants, java.io.Closeable {
 
     /* mgferreira */
     private boolean blockBelongsToAppData() {
-		return src.contains(".txt");
+		return (src.contains(".txt") || src.contains(".gz"));
 	}
   
     private LocatedBlock locateFollowingBlock(long start,
