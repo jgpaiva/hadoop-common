@@ -120,7 +120,10 @@ public class xRecordReader implements RecordReader<LongWritable, Text> {
 			}
 			FSDataInputStream fileIn = fs.open(file);
 
+			System.out.println("going to check if it is compressed...");
+			System.out.println("is it? " +isCompressedInput());
 			if (isCompressedInput()) {
+				System.out.println("COMPRESSED!");
 				decompressor = CodecPool.getDecompressor(codec);
 				if (codec instanceof SplittableCompressionCodec) {
 					final SplitCompressionInputStream cIn =

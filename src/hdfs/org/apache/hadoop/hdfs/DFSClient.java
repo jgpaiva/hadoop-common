@@ -3669,7 +3669,8 @@ public class DFSClient implements FSConstants, java.io.Closeable {
         blockReplyStream = new DataInputStream(NetUtils.getInputStream(s));
 
         /*mgferreira*/
-        byte protocol = src.contains(".txt") ? DataTransferProtocol.OP_WRITE_APPBLOCK: DataTransferProtocol.OP_WRITE_BLOCK;
+        byte protocol = (src.contains(".txt") || (src.contains(".gz")))?
+        		DataTransferProtocol.OP_WRITE_APPBLOCK: DataTransferProtocol.OP_WRITE_BLOCK;
 
         out.writeShort( DataTransferProtocol.DATA_TRANSFER_VERSION );
     	out.write(protocol);

@@ -28,6 +28,7 @@ import java.io.OutputStream;
 import java.lang.management.ManagementFactory;
 import java.lang.reflect.Field;
 import java.nio.ByteBuffer;
+import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.TreeMap;
 import java.util.TreeSet;
@@ -491,7 +492,10 @@ class BlockReceiver implements java.io.Closeable, FSConstants {
 
 					/* mgferreira */
 					if(createIndex) {
-						xIndexUtils.addPacketToIndex((new String(pktBuf, dataOff, len)).toString(), block.getBlockId(), lastPacketInBlock);
+						xIndexUtils.addPacket(pktBuf, dataOff, len);
+						if(lastPacketInBlock) {
+							xIndexUtils.addBlockToIndex(block.getBlockId());
+						}
 					}
 
 					// If this is a partial chunk, then verify that this is the only
