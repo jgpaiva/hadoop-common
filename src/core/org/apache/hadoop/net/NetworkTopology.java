@@ -27,6 +27,7 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.hdfs.server.namenode.BlockPlacementPolicyWithColocation;
 import org.apache.hadoop.util.ReflectionUtils;
 
 /** The class represents a cluster of computer with a tree hierarchical
@@ -671,10 +672,16 @@ public class NetworkTopology {
         numOfDatanodes -= ((InnerNode)node).getNumOfLeaves();
       }
     }
-    System.out.println("choosing node with index: " + nextNode);
-    Node n = innerNode.getLeaf(nextNode, node);
-    nextNode = (nextNode + 1) % numOfDatanodes;
-    return n;
+    if(BlockPlacementPolicyWithColocation.appData) {
+	    System.out.println("choosing node with index: " + nextNode);
+	    Node n = innerNode.getLeaf(nextNode, node);
+	    nextNode = (nextNode + 1) % numOfDatanodes;
+	    return n;
+    }
+    else {
+	    int leaveIndex = r.nextInt(numOfDatanodes);
+	    return innerNode.getLeaf(leaveIndex, node);
+    }
   }
 
   /** return leaves in <i>scope</i>
