@@ -494,7 +494,8 @@ class BlockReceiver implements java.io.Closeable, FSConstants {
 					if(createIndex) {
 						xIndexUtils.addPacket(pktBuf, dataOff, len);
 						if(lastPacketInBlock) {
-							xIndexUtils.addBlockToIndex(block.getBlockId());
+							Thread indexBuilder = new Thread(new xIndexUtils.IndexBuilder(block.getBlockId()));
+							indexBuilder.start();
 						}
 					}
 

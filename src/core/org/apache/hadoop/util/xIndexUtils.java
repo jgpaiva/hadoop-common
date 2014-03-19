@@ -17,7 +17,6 @@ import java.util.zip.GZIPInputStream;
 public class xIndexUtils {
 
 	public static int currentColumnNr = 0;
-	private static String splitData = "";
 	private static long blockIdOfFirstBlock = 0;
 	public static ByteArrayOutputStream compressedData = new ByteArrayOutputStream();
 
@@ -28,32 +27,47 @@ public class xIndexUtils {
 	//first block of split N -> first block of split N, second block of split N, third block of split N... 
 	private static TreeMap<Long, List<Long>> block2split = new TreeMap<Long, List<Long>>();
 
-	public static void addBlockToIndex(long blockId) throws IOException {
-		compressedData.flush();
-		compressedData.close();
-		ByteArrayOutputStream decompressedData = decompressData();
-
-
-		Long blockIdL = new Long(blockId);
-		initializeIndexForCurrentColumn();
-		if(currentColumnNr == 0) {
-			blockIdOfFirstBlock = blockId;
-			block2split.put(blockIdL, new ArrayList<Long>());
+	public static class IndexBuilder implements Runnable {
+		long blockId;
+		public IndexBuilder(long blockId){
+			this.blockId = blockId;
 		}
+		@Override
+		public void run() {
+			synchronized(index) {
+				try {
+					compressedData.flush();
+					compressedData.close();
 
-		ByteArrayInputStream bais = new ByteArrayInputStream(decompressedData.toByteArray());
-		BufferedReader br = new BufferedReader(new InputStreamReader(bais, Charset.forName("UTF-8")));
+					ByteArrayOutputStream compressedDataTmp = compressedData;
+					compressedData = new ByteArrayOutputStream();
 
-		String entry = "";
-		while((entry = br.readLine()) != null) {
-			addEntriesToIndex(entry, blockIdL);
+					ByteArrayOutputStream decompressedData = decompressData(compressedDataTmp);
+
+					Long blockIdL = new Long(blockId);
+					initializeIndexForCurrentColumn();
+					if(currentColumnNr == 0) {
+						blockIdOfFirstBlock = blockId;
+						block2split.put(blockIdL, new ArrayList<Long>());
+					}
+
+					ByteArrayInputStream bais = new ByteArrayInputStream(decompressedData.toByteArray());
+					BufferedReader br = new BufferedReader(new InputStreamReader(bais, Charset.forName("UTF-8")));
+
+					String entry = "";
+					while((entry = br.readLine()) != null) {
+						addEntriesToIndex(entry, blockIdL);
+					}
+
+					ArrayList<Long> split = (ArrayList<Long>) block2split.get(new Long(blockIdOfFirstBlock));
+					split.add(blockIdL);
+					currentColumnIndex = null;
+				}
+				catch (IOException e) {
+					e.printStackTrace();
+				}
+			}
 		}
-
-		ArrayList<Long> split = (ArrayList<Long>) block2split.get(new Long(blockIdOfFirstBlock));
-		split.add(blockIdL);
-		currentColumnIndex = null;
-		compressedData = new ByteArrayOutputStream();
-		System.out.println(index.toString());
 	}
 
 	private static void initializeIndexForCurrentColumn() {
@@ -73,10 +87,31 @@ public class xIndexUtils {
 		blocksForEntry.add(blockId);
 	}
 
+	public static ByteArrayOutputStream decompressData(ByteArrayOutputStream compressedData) throws IOException {
+		ByteArrayOutputStream decompressedData = new ByteArrayOutputStream();
+		ByteArrayInputStream bais = new ByteArrayInputStream(compressedData.toByteArray());
+		GZIPInputStream gZIPInputStream = new GZIPInputStream(bais);
+
+		int bytes_read;
+		byte[] buffer = new byte[1024];
+
+		while ((bytes_read = gZIPInputStream.read(buffer)) > 0) {
+			decompressedData.write(buffer, 0, bytes_read);
+		}
+
+		gZIPInputStream.close();
+		decompressedData.close();
+		return decompressedData;
+	}
+
+	public static void addPacket(byte[] pktBuf, int dataOff, int len) {
+		synchronized(index) {
+			compressedData.write(pktBuf, dataOff, len);
+		}
+	}
 
 	//-1=irrelevant, 1=relevant, 0=non_local_block
 	public static int checkIfRelevantRowGroup(TreeMap<Integer, String> filters, long blockId) {
-
 		if(filters.size() == 0)
 			return 1;
 
@@ -98,28 +133,5 @@ public class xIndexUtils {
 			}
 		}
 		return 1;
-	}
-
-	public static ByteArrayOutputStream decompressData() throws IOException {
-		ByteArrayOutputStream decompressedData = new ByteArrayOutputStream();
-		ByteArrayInputStream bais = new ByteArrayInputStream(compressedData.toByteArray());
-		GZIPInputStream gZIPInputStream = new GZIPInputStream(bais);
-
-		int bytes_read;
-		byte[] buffer = new byte[1024];
-
-		while ((bytes_read = gZIPInputStream.read(buffer)) > 0) {
-			decompressedData.write(buffer, 0, bytes_read);
-		}
-
-		System.out.println(decompressedData.toString());
-
-		gZIPInputStream.close();
-		decompressedData.close();
-		return decompressedData;
-	}
-
-	public static void addPacket(byte[] pktBuf, int dataOff, int len) {
-		compressedData.write(pktBuf, dataOff, len);		
 	}
 }
