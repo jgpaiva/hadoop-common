@@ -104,9 +104,9 @@ public class xIndexUtils {
 		return decompressedData;
 	}
 
-	public static void addPacket(byte[] pktBuf, int dataOff, int len) {
+	public static void addPacket(byte[] pktBuf) throws IOException {
 		synchronized(index) {
-			compressedData.write(pktBuf, dataOff, len);
+			compressedData.write(pktBuf);
 		}
 	}
 
