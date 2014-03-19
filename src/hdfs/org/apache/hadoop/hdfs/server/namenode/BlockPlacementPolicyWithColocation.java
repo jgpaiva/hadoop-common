@@ -268,7 +268,7 @@ public class BlockPlacementPolicyWithColocation extends BlockPlacementPolicy {
 			return chooseRandom(NodeBase.ROOT, excludedNodes, blocksize,
 					maxNodesPerRack, results, avoidStaleNodes);
 		}
-		System.out.println("else");
+		if(localMachine == null)
 			return chooseRandom(NodeBase.ROOT, excludedNodes, blocksize,
 					maxNodesPerRack, results, avoidStaleNodes);
 
