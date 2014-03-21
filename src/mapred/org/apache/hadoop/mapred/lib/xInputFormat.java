@@ -25,6 +25,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
+import java.util.TreeMap;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -53,7 +54,6 @@ implements JobConfigurable {
 	public static final Log LOG = LogFactory.getLog(xInputFormat.class);
 
 	private String FIRST_COLUMN_IDENTIFIER = "";
-	private int NUMBER_OF_BLOCK_PER_SPLIT = 0;
 	static final String NUM_INPUT_FILES = "mapreduce.input.num.files";
 
 	public RecordReader<LongWritable, Text> getRecordReader(
@@ -86,21 +86,39 @@ implements JobConfigurable {
 		ArrayList<xFileSplit> splits = new ArrayList<xFileSplit>(numSplits);
 		NetworkTopology clusterMap = new NetworkTopology();
 
-		int j = 0;
+
 		ArrayList<Path> paths = null;
 		ArrayList<Long> blocksIds = null;
 
 		//<k, v> : v splits with k blocks
-		Map<Integer, Integer> splitsNblocks = new HashMap<Integer, Integer>();
+		TreeMap<Integer, Integer> splitsNblocks = new TreeMap<Integer, Integer>();
 		splitsNblocks.put(new Integer(2), new Integer(2));
 		splitsNblocks.put(new Integer(1), new Integer(2));
 
-		Set<Integer> listOfnumberOfBlocksPerSplit = splitsNblocks.keySet();
+		List<Integer> splitList = new ArrayList<Integer>();
+		while(true) {
+			boolean added = false;
+			for (Integer nBlocks : splitsNblocks.keySet()) {
+				int nSplitsWithNBlocks = splitsNblocks.get(nBlocks).intValue();
+				if (nSplitsWithNBlocks != 0) {
+					added = true;
+					splitList.add(new Integer(nBlocks.intValue()));
+					splitsNblocks.put(nBlocks, new Integer(nSplitsWithNBlocks-1));
+					System.out.println("adding splits with " + nBlocks + " blocks");
+				}
+			}
+			if(added == false) {
+				break;
+			}
+		}
+		
+		System.out.println("LISSSSSSSSSSSSSSSSSSST : " + splitList.toString());
+
 		int i = 0;
-		for(Integer numberOfBlocksPerSPlit : listOfnumberOfBlocksPerSplit) {
-			int numberOfSplits = splitsNblocks.get(numberOfBlocksPerSPlit);
-			int nFilesToTheseSplits = numberOfSplits*numberOfBlocksPerSPlit;
-			for(int k = 0; i < files.length && k < nFilesToTheseSplits; i++, k++) {
+		for(Integer NblocksInThisSplit : splitList) {
+			int j = 0;
+			int nFilesToThisSplit = NblocksInThisSplit.intValue();
+			for(int k = 0; i < files.length && k < nFilesToThisSplit; i++, k++) {
 				FileStatus file = files[i];
 				Path path = file.getPath();
 				long length = file.getLen();
@@ -121,10 +139,10 @@ implements JobConfigurable {
 					String[] splitHosts = getSplitHosts(blkLocations, 0, splitSize, clusterMap);
 					long blockId = blkLocations[0].getBlockId();
 
-					if ((j % numberOfBlocksPerSPlit) == 0) {
+					if ((j % NblocksInThisSplit) == 0) {
 						paths = new ArrayList<Path>();
 						blocksIds = new ArrayList<Long>();
-						xFileSplit split = new xFileSplit(blocksIds, numberOfBlocksPerSPlit, paths, 0, blockSize, splitHosts);
+						xFileSplit split = new xFileSplit(blocksIds, NblocksInThisSplit, paths, 0, blockSize, splitHosts);
 						splits.add(split);
 					}
 					paths.add(path);
@@ -139,6 +157,5 @@ implements JobConfigurable {
 
 	public void configure(JobConf conf) {
 		FIRST_COLUMN_IDENTIFIER = conf.get("first.column.identifier");
-		NUMBER_OF_BLOCK_PER_SPLIT = conf.getInt("blocks.per.split", 1);
 	}
 }
