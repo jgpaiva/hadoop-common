@@ -56,6 +56,8 @@ implements JobConfigurable {
 	private String FIRST_COLUMN_IDENTIFIER = "";
 	static final String NUM_INPUT_FILES = "mapreduce.input.num.files";
 
+	public List<Integer> splitList;
+
 	public RecordReader<LongWritable, Text> getRecordReader(
 			InputSplit genericSplit,
 			JobConf job,
@@ -90,29 +92,7 @@ implements JobConfigurable {
 		ArrayList<Path> paths = null;
 		ArrayList<Long> blocksIds = null;
 
-		//<k, v> : v splits with k blocks
-		TreeMap<Integer, Integer> splitsNblocks = new TreeMap<Integer, Integer>();
-		splitsNblocks.put(new Integer(2), new Integer(2));
-		splitsNblocks.put(new Integer(1), new Integer(2));
 
-		List<Integer> splitList = new ArrayList<Integer>();
-		while(true) {
-			boolean added = false;
-			for (Integer nBlocks : splitsNblocks.keySet()) {
-				int nSplitsWithNBlocks = splitsNblocks.get(nBlocks).intValue();
-				if (nSplitsWithNBlocks != 0) {
-					added = true;
-					splitList.add(new Integer(nBlocks.intValue()));
-					splitsNblocks.put(nBlocks, new Integer(nSplitsWithNBlocks-1));
-					System.out.println("adding splits with " + nBlocks + " blocks");
-				}
-			}
-			if(added == false) {
-				break;
-			}
-		}
-		
-		System.out.println("LISSSSSSSSSSSSSSSSSSST : " + splitList.toString());
 
 		int i = 0;
 		for(Integer NblocksInThisSplit : splitList) {
@@ -157,5 +137,39 @@ implements JobConfigurable {
 
 	public void configure(JobConf conf) {
 		FIRST_COLUMN_IDENTIFIER = conf.get("first.column.identifier");
+		setSplitList(conf.get("size.of.splits"));
+	}
+
+	private void setSplitList(String splitsString) {
+		//<k, v> : v splits with k blocks
+		TreeMap<Integer, Integer> splitsNblocks = new TreeMap<Integer, Integer>();
+
+		if(splitsString != null) {
+			String[] splits = splitsString.split(";");
+			for (String splitString : splits) {
+				int numberOfSplits = Integer.parseInt(splitString.split("-")[0]);
+				int numberOfBlocks = Integer.parseInt(splitString.split("-")[1]);
+				splitsNblocks.put(new Integer(numberOfBlocks), new Integer(numberOfSplits));
+			}
+		}
+		splitList = new ArrayList<Integer>();
+		while(true) {
+			boolean added = false;
+			for (Integer nBlocks : splitsNblocks.keySet()) {
+				int nSplitsWithNBlocks = splitsNblocks.get(nBlocks).intValue();
+				if (nSplitsWithNBlocks != 0) {
+					added = true;
+					splitList.add(new Integer(nBlocks.intValue()));
+					splitsNblocks.put(nBlocks, new Integer(nSplitsWithNBlocks-1));
+					System.out.println("adding splits with " + nBlocks + " blocks");
+				}
+			}
+			if(added == false) {
+				break;
+			}
+		}
+		
+		System.out.println(splitList.toString());
+
 	}
 }
