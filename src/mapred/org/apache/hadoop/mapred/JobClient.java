@@ -1075,33 +1075,35 @@ public class JobClient extends Configured implements MRConstants, Tool  {
     return maps;
   }
   
+  /*mgferreira*/
   //method to write splits for old api mapper.
   private int writeOldSplits(JobConf job, Path jobSubmitDir) 
   throws IOException {
-    org.apache.hadoop.mapred.InputSplit[] splits =
-    job.getInputFormat().getSplits(job, job.getNumMapTasks());
+    org.apache.hadoop.mapred.xFileSplit[] splits =
+    (org.apache.hadoop.mapred.xFileSplit[]) job.getInputFormat().getSplits(job, job.getNumMapTasks());
     // sort the splits into order based on size, so that the biggest
     // go first
-    Arrays.sort(splits, new Comparator<org.apache.hadoop.mapred.InputSplit>() {
-      public int compare(org.apache.hadoop.mapred.InputSplit a,
-                         org.apache.hadoop.mapred.InputSplit b) {
-        try {
-          long left = a.getLength();
-          long right = b.getLength();
+    Arrays.sort(splits, new Comparator<org.apache.hadoop.mapred.xFileSplit>() {
+      public int compare(org.apache.hadoop.mapred.xFileSplit a,
+                         org.apache.hadoop.mapred.xFileSplit b) {
+        long left = a.getNumberOfFiles();
+          long right = b.getNumberOfFiles();
+    	  System.out.println(a.getBlocksIds());
+    	  System.out.println(b.getBlocksIds());
           if (left == right) {
+        	  System.out.println("Same number of blocks");
             return 0;
           } else if (left < right) {
+        	  System.out.println("first split has fewer blocks");
             return 1;
           } else {
+        	  System.out.println("first split has more blocks");
             return -1;
           }
-        } catch (IOException ie) {
-          throw new RuntimeException("Problem getting input split size", ie);
-        }
       }
     });
     JobSplitWriter.createSplitFiles(jobSubmitDir, job,
-        jobSubmitDir.getFileSystem(job), splits);
+        jobSubmitDir.getFileSystem(job), (org.apache.hadoop.mapred.InputSplit[]) splits);
     return splits.length;
   }
   

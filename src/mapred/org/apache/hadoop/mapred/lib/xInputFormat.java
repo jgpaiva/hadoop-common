@@ -20,6 +20,11 @@ package org.apache.hadoop.mapred.lib;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Set;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -66,13 +71,13 @@ implements JobConfigurable {
 
 		// Save the number of input files in the job-conf
 		job.setLong(NUM_INPUT_FILES, files.length);
-		
+
 		/*mgferreira*/
 		//TODO: aqi comunicar com alguns data nodes e alterar a variavel NUMBER_OF_BLOCK_PER_SPLIT
-		
+
 		for(int i = 0; i < files.length; i++) {
 			FileStatus file = files[i];
-             // check we have valid files
+			// check we have valid files
 			if (file.isDir()) {
 				throw new IOException("Not a file: "+ file.getPath());
 			}
@@ -85,38 +90,50 @@ implements JobConfigurable {
 		ArrayList<Path> paths = null;
 		ArrayList<Long> blocksIds = null;
 
-		for(int i = 0; i < files.length; i++) {
-			FileStatus file = files[i];
-			Path path = file.getPath();
-			long length = file.getLen();
-			long blockSize = file.getBlockSize();
-			long splitSize = file.getLen();
-			FileSystem fs = path.getFileSystem(job);
+		//<k, v> : v splits with k blocks
+		Map<Integer, Integer> splitsNblocks = new HashMap<Integer, Integer>();
+		splitsNblocks.put(new Integer(2), new Integer(2));
+		splitsNblocks.put(new Integer(1), new Integer(2));
 
-			if ((length != 0) && isSplitable(fs, path)) {
-				String fileName = path.getName();
-				/* since we want to create a split per each row group 
-				 * we will create a split per each first column of each row group */
-				if(!fileName.contains(FIRST_COLUMN_IDENTIFIER)) {
-					continue;
+		Set<Integer> listOfnumberOfBlocksPerSplit = splitsNblocks.keySet();
+		int i = 0;
+		for(Integer numberOfBlocksPerSPlit : listOfnumberOfBlocksPerSplit) {
+			int numberOfSplits = splitsNblocks.get(numberOfBlocksPerSPlit);
+			int nFilesToTheseSplits = numberOfSplits*numberOfBlocksPerSPlit;
+			for(int k = 0; i < files.length && k < nFilesToTheseSplits; i++, k++) {
+				FileStatus file = files[i];
+				Path path = file.getPath();
+				long length = file.getLen();
+				long blockSize = file.getBlockSize();
+				long splitSize = file.getLen();
+				FileSystem fs = path.getFileSystem(job);
+
+				if ((length != 0) && isSplitable(fs, path)) {
+					String fileName = path.getName();
+					/* since we want to create a split per each row group 
+					 * we will create a split per each first column of each row group */
+					if(!fileName.contains(FIRST_COLUMN_IDENTIFIER)) {
+						continue;
+					}
+
+					BlockLocation[] blkLocations = fs.getFileBlockLocations(file, 0, length);
+
+					String[] splitHosts = getSplitHosts(blkLocations, 0, splitSize, clusterMap);
+					long blockId = blkLocations[0].getBlockId();
+
+					if ((j % numberOfBlocksPerSPlit) == 0) {
+						paths = new ArrayList<Path>();
+						blocksIds = new ArrayList<Long>();
+						xFileSplit split = new xFileSplit(blocksIds, numberOfBlocksPerSPlit, paths, 0, blockSize, splitHosts);
+						splits.add(split);
+					}
+					paths.add(path);
+					blocksIds.add(new Long(blockId));
+					j++;
 				}
-				
-				BlockLocation[] blkLocations = fs.getFileBlockLocations(file, 0, length);
-
-				String[] splitHosts = getSplitHosts(blkLocations, 0, splitSize, clusterMap);
-				long blockId = blkLocations[0].getBlockId();
-
-				if ((j % NUMBER_OF_BLOCK_PER_SPLIT) == 0) {
-					paths = new ArrayList<Path>();
-					blocksIds = new ArrayList<Long>();
-					xFileSplit split = new xFileSplit(blocksIds, NUMBER_OF_BLOCK_PER_SPLIT, paths, 0, blockSize, splitHosts);
-					splits.add(split);
-				}
-				paths.add(path);
-				blocksIds.add(new Long(blockId));
-				j++;
 			}
 		}
+		System.out.println(splits);
 		return splits.toArray(new xFileSplit[splits.size()]);
 	}
 

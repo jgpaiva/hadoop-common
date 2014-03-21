@@ -63,7 +63,7 @@ class TaskInProgress {
 
   // Defines the TIP
   private String jobFile = null;
-  private final TaskSplitMetaInfo splitInfo;
+  public final TaskSplitMetaInfo splitInfo;
   private int numMaps;
   private int partition;
   private JobTracker jobtracker;

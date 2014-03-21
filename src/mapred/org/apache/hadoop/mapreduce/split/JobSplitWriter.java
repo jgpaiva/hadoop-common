@@ -32,10 +32,10 @@ import org.apache.hadoop.io.Text;
 import org.apache.hadoop.io.WritableUtils;
 import org.apache.hadoop.io.serializer.SerializationFactory;
 import org.apache.hadoop.io.serializer.Serializer;
+import org.apache.hadoop.mapred.xFileSplit;
 import org.apache.hadoop.mapreduce.InputSplit;
 import org.apache.hadoop.mapreduce.JobSubmissionFiles;
 import org.apache.hadoop.mapreduce.split.JobSplit.SplitMetaInfo;
-
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
@@ -165,7 +165,8 @@ public class JobSplitWriter {
         }
         info[i++] = new JobSplit.SplitMetaInfo( 
             locations, offset,
-            split.getLength());
+            split.getLength(),
+            ((xFileSplit)split).getNumberOfFiles());
         offset += currLen - prevLen;
       }
     }
