@@ -2402,7 +2402,8 @@ public class JobInProgress {
 			// off-switch/speculative tasks
 
 			/*mgferreira*/
-			boolean localTasksFirst = conf.getBoolean("mapred.locality.or.bigger.tasks.first", false);
+			boolean localTasksFirst = conf.getBoolean("mapred.locality.or.biggest.tasks.first", false);
+			System.out.println("localTasksFirst: " + localTasksFirst);
 			if(!localTasksFirst) {
 				List <TaskInProgress> cacheForLevel = null;
 				Node tipKey = null;

@@ -53,12 +53,9 @@ public class xInputFormat extends FileInputFormat<LongWritable, Text>
 implements JobConfigurable {
 	public static final Log LOG = LogFactory.getLog(xInputFormat.class);
 
-	private String FIRST_COLUMN_IDENTIFIER = "";
 	static final String NUM_INPUT_FILES = "mapreduce.input.num.files";
 
-	public List<Integer> splitList;
-
-	private String sizeOfSplits;
+	private String FIRST_COLUMN_IDENTIFIER = "";
 
 	public RecordReader<LongWritable, Text> getRecordReader(
 			InputSplit genericSplit,
@@ -75,8 +72,8 @@ implements JobConfigurable {
 
 		// Save the number of input files in the job-conf
 		job.setLong(NUM_INPUT_FILES, files.length);
+		FIRST_COLUMN_IDENTIFIER = job.get("first.column.identifier");
 
-		/*mgferreira*/
 
 		for(int i = 0; i < files.length; i++) {
 			FileStatus file = files[i];
@@ -85,16 +82,66 @@ implements JobConfigurable {
 				throw new IOException("Not a file: "+ file.getPath());
 			}
 		}
-		// generate splits only for the first columns of each row group
+
+		boolean equalSplits = job.getBoolean("equal.splits", false);
+		if(equalSplits) {
+			int numberOfBlocksPerSplit = job.getInt("blocks.per.split", 1);
+			return buildEqualSplits(job, files, numSplits, numberOfBlocksPerSplit);
+		} 
+		else {
+			String sizeOfSplits = job.get("blocks.per.split");
+			List<Integer> splitList = buildSplitList(sizeOfSplits);
+			return buildDifferentSplits(job, files, numSplits, splitList);
+		}
+	}
+
+	private InputSplit[] buildEqualSplits(JobConf job, FileStatus[] files, int numSplits, int numberOfBlocksPerSplit) throws IOException {
 		ArrayList<xFileSplit> splits = new ArrayList<xFileSplit>(numSplits);
 		NetworkTopology clusterMap = new NetworkTopology();
-
-
 		ArrayList<Path> paths = null;
 		ArrayList<Long> blocksIds = null;
 
-		setSplitList(sizeOfSplits);
+		int j = 0;  
+		for(int i = 0; i < files.length; i++) {
+			FileStatus file = files[i];
+			Path path = file.getPath();
+			long length = file.getLen();
+			long blockSize = file.getBlockSize();
+			long splitSize = file.getLen();
+			FileSystem fs = path.getFileSystem(job);
 
+			if ((length != 0) && isSplitable(fs, path)) {
+				String fileName = path.getName();
+				/* since we want to create a split per each row group 
+				 * we will create a split per each first column of each row group */
+				if(!fileName.contains(FIRST_COLUMN_IDENTIFIER)) {
+					continue;
+				}
+				BlockLocation[] blkLocations = fs.getFileBlockLocations(file, 0, length);
+				String[] splitHosts = getSplitHosts(blkLocations, 0, splitSize, clusterMap);
+				long blockId = blkLocations[0].getBlockId();
+
+				if ((j % numberOfBlocksPerSplit) == 0) {
+					paths = new ArrayList<Path>();
+					blocksIds = new ArrayList<Long>();
+					xFileSplit split = new xFileSplit(blocksIds, numberOfBlocksPerSplit, paths, 0, blockSize, splitHosts);
+					splits.add(split);
+				}
+				paths.add(path);
+				blocksIds.add(new Long(blockId));
+				j++;
+			}
+		}
+		return splits.toArray(new xFileSplit[splits.size()]);
+	}
+
+	private InputSplit[] buildDifferentSplits(JobConf job, FileStatus[] files, int numSplits, List<Integer> splitList)
+			throws IOException {
+		// generate splits only for the first columns of each row group
+		ArrayList<xFileSplit> splits = new ArrayList<xFileSplit>(numSplits);
+		NetworkTopology clusterMap = new NetworkTopology();
+		ArrayList<Path> paths = null;
+		ArrayList<Long> blocksIds = null;
 		int i = 0;
 		for(Integer NblocksInThisSplit : splitList) {
 			int nFilesToThisSplit = NblocksInThisSplit.intValue();
@@ -133,17 +180,15 @@ implements JobConfigurable {
 		return splits.toArray(new xFileSplit[splits.size()]);
 	}
 
-	public void configure(JobConf conf) {
-		FIRST_COLUMN_IDENTIFIER = conf.get("first.column.identifier");
-		sizeOfSplits = conf.get("size.of.splits");
-	}
+	public void configure(JobConf conf) {}
 
-	private void setSplitList(String splitsString) {
+	private List<Integer> buildSplitList(String splitsString) {
 		//<k, v> : v splits with k blocks
 		TreeMap<Integer, Integer> splitsNblocks = new TreeMap<Integer, Integer>();
+		List<Integer> splitList = new ArrayList<Integer>();
 
 		if(splitsString != null) {
-			String[] splits = splitsString.split(";");
+			String[] splits = splitsString.split(":");
 			for (String splitString : splits) {
 				int numberOfSplits = Integer.parseInt(splitString.split("-")[0]);
 				int numberOfBlocks = Integer.parseInt(splitString.split("-")[1]);
@@ -165,6 +210,6 @@ implements JobConfigurable {
 				break;
 			}
 		}
-
+		return splitList;
 	}
 }

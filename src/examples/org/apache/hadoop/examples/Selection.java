@@ -146,20 +146,34 @@ public class Selection extends Configured implements Tool {
     conf.setJobName(jobName);
 
     String blocksPerSplit = args[1];
+    if(blocksPerSplit.contains("-")) {
+    	conf.setBooleanIfUnset("equal.splits", false);
+    }
+    else {
+    	conf.setBooleanIfUnset("equal.splits", true);
+    }
     conf.setIfUnset("blocks.per.split", blocksPerSplit);
     
+    String localityFirst = args[2];
+    if (localityFirst.equals("true")) {
+    	conf.setBooleanIfUnset("mapred.locality.or.biggest.tasks.first", true);
+    }
+    else {
+    	conf.setBooleanIfUnset("mapred.locality.or.biggest.tasks.first", false);
+    }
+    
     /* applying filters: <attribute number #>-<predicate>;<attribute number #>-<predicate> */
-    String filters = args[2];
+    String filters = args[3];
     if (!filters.equals("none")) {
     	conf.setIfUnset("filters", filters);
     }
 
-    String relevantAttrs = args[3];
+    String relevantAttrs = args[4];
     conf.setIfUnset("relevantAttrs", relevantAttrs);
     
-    String[] argsN = new String[args.length-4];
-    for (int i = 4; i < args.length; i++) {
-    	argsN[i-4] = args[i];
+    String[] argsN = new String[args.length-5];
+    for (int i = 5; i < args.length; i++) {
+    	argsN[i-5] = args[i];
     }
  
     // the keys are words (strings)
