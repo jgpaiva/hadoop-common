@@ -58,6 +58,8 @@ implements JobConfigurable {
 
 	public List<Integer> splitList;
 
+	private String sizeOfSplits;
+
 	public RecordReader<LongWritable, Text> getRecordReader(
 			InputSplit genericSplit,
 			JobConf job,
@@ -75,7 +77,6 @@ implements JobConfigurable {
 		job.setLong(NUM_INPUT_FILES, files.length);
 
 		/*mgferreira*/
-		//TODO: aqi comunicar com alguns data nodes e alterar a variavel NUMBER_OF_BLOCK_PER_SPLIT
 
 		for(int i = 0; i < files.length; i++) {
 			FileStatus file = files[i];
@@ -92,11 +93,10 @@ implements JobConfigurable {
 		ArrayList<Path> paths = null;
 		ArrayList<Long> blocksIds = null;
 
-
+		setSplitList(sizeOfSplits);
 
 		int i = 0;
 		for(Integer NblocksInThisSplit : splitList) {
-			int j = 0;
 			int nFilesToThisSplit = NblocksInThisSplit.intValue();
 			for(int k = 0; i < files.length && k < nFilesToThisSplit; i++, k++) {
 				FileStatus file = files[i];
@@ -119,7 +119,7 @@ implements JobConfigurable {
 					String[] splitHosts = getSplitHosts(blkLocations, 0, splitSize, clusterMap);
 					long blockId = blkLocations[0].getBlockId();
 
-					if ((j % NblocksInThisSplit) == 0) {
+					if (k == 0) {
 						paths = new ArrayList<Path>();
 						blocksIds = new ArrayList<Long>();
 						xFileSplit split = new xFileSplit(blocksIds, NblocksInThisSplit, paths, 0, blockSize, splitHosts);
@@ -127,17 +127,15 @@ implements JobConfigurable {
 					}
 					paths.add(path);
 					blocksIds.add(new Long(blockId));
-					j++;
 				}
 			}
 		}
-		System.out.println(splits);
 		return splits.toArray(new xFileSplit[splits.size()]);
 	}
 
 	public void configure(JobConf conf) {
 		FIRST_COLUMN_IDENTIFIER = conf.get("first.column.identifier");
-		setSplitList(conf.get("size.of.splits"));
+		sizeOfSplits = conf.get("size.of.splits");
 	}
 
 	private void setSplitList(String splitsString) {
@@ -161,15 +159,12 @@ implements JobConfigurable {
 					added = true;
 					splitList.add(new Integer(nBlocks.intValue()));
 					splitsNblocks.put(nBlocks, new Integer(nSplitsWithNBlocks-1));
-					System.out.println("adding splits with " + nBlocks + " blocks");
 				}
 			}
 			if(added == false) {
 				break;
 			}
 		}
-		
-		System.out.println(splitList.toString());
 
 	}
 }

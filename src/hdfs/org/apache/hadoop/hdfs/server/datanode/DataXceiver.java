@@ -316,6 +316,7 @@ class DataXceiver implements Runnable, FSConstants {
 					byte protocol = 0;
 					TreeMap<Integer, String> filtersMap = new TreeMap<Integer, String>();
 
+					System.out.println("read block " + blockId + " for another datanode");
 					// <attribute number #>-<predicate>;<attribute number #>-<predicate>...
 					if(filters != null) {
 						String[] filtersArr = filters.split(";");
@@ -327,11 +328,12 @@ class DataXceiver implements Runnable, FSConstants {
 						}
 					}
 					if (xIndexUtils.checkIfRelevantRowGroup(filtersMap, blockId) == -1) {
-						System.out.println("read block " + blockId + " for another datanode");
+						System.out.println("irrelevant block " + blockId + " for another datanode");
 						protocol = DataTransferProtocol.OP_READ_IRRELEVANT_APPBLOCK;
 						out.writeShort(protocol); // send op status
 						out.flush();
 						IOUtils.closeStream(out);
+						IOUtils.closeStream(blockSender);
 						return;
 					}
 					protocol = DataTransferProtocol.OP_STATUS_SUCCESS;

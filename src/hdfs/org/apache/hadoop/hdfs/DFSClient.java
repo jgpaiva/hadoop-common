@@ -100,7 +100,6 @@ public class DFSClient implements FSConstants, java.io.Closeable {
   private SocketAddress[] localInterfaceAddrs;
 
   /*mgferreira*/
-  public static boolean readingIrrelevantNonLocalBlock = false;
   public static String filters;
   
   /**
@@ -1679,7 +1678,7 @@ public class DFSClient implements FSConstants, java.io.Closeable {
         startOffset = -1;
         return -1;
       }
-      
+
       // Read one DATA_CHUNK.
       long chunkOffset = lastChunkOffset;
       if ( lastChunkLen > 0 ) {
@@ -1810,6 +1809,7 @@ public class DFSClient implements FSConstants, java.io.Closeable {
      * @param verifyChecksum Checksum verification is required or not.
      * @return BlockReader object.
      * @throws IOException
+     * @throws IrrelevantRemoteBlockException 
      */
     public static BlockReader newBlockReader(Socket sock, String file, long blockId, 
                                        Token<BlockTokenIdentifier> accessToken,
@@ -1840,6 +1840,7 @@ public class DFSClient implements FSConstants, java.io.Closeable {
       out.writeShort( DataTransferProtocol.DATA_TRANSFER_VERSION );
       out.write(protocol);
       if (LineReader.remoteReadAppBlock) {
+    	  System.out.println("DFSClient: requesting block " + blockId);
     	  Text.writeString(out, filters);
       }
       out.writeLong( blockId );
@@ -1861,11 +1862,12 @@ public class DFSClient implements FSConstants, java.io.Closeable {
       short status = in.readShort();
       
       /*mgferreira*/
-      if (status == DataTransferProtocol.OP_READ_IRRELEVANT_APPBLOCK) {
-    	  readingIrrelevantNonLocalBlock = true;
-    	  return null;
-      }
       
+      if (status == DataTransferProtocol.OP_READ_IRRELEVANT_APPBLOCK) {
+    	  System.out.println("DFSClient: " + blockId +" is irrelevant. going to throw exception");
+    	  throw new IrrelevantRemoteBlockException();
+      }
+	  System.out.println("DFSClient: " + blockId +" is relevant!");
       if (status != DataTransferProtocol.OP_STATUS_SUCCESS) {
         if (status == DataTransferProtocol.OP_STATUS_ERROR_ACCESS_TOKEN) {
           throw new InvalidBlockTokenException(
@@ -2430,11 +2432,7 @@ public class DFSClient implements FSConstants, java.io.Closeable {
             if (pos > blockEnd) {
               currentNode = blockSeekTo(pos);
             }
-            /*mgferreira*/
-            if (readingIrrelevantNonLocalBlock) {
-            	readingIrrelevantNonLocalBlock = false;
-            	return 0;
-            }
+
             int realLen = (int) Math.min((long) len, (blockEnd - pos + 1L));
             int result = readBuffer(buf, off, realLen);
             
@@ -2586,6 +2584,7 @@ public class DFSClient implements FSConstants, java.io.Closeable {
      * @param length number of bytes to read
      * 
      * @return actual number of bytes read
+     * @throws IrrelevantRemoteBlockException 
      */
     @Override
     public int read(long position, byte[] buffer, int offset, int length)
@@ -2661,7 +2660,7 @@ public class DFSClient implements FSConstants, java.io.Closeable {
             if (pos == targetPos) {
               done = true;
             }
-          } catch (IOException e) {//make following read to retry
+          } catch (IOException e) {//make following read to retry 
             LOG.debug("Exception while seek to " + targetPos + " from "
                       + currentBlock +" of " + src + " from " + currentNode + 
                       ": " + StringUtils.stringifyException(e));

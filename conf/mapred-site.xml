@@ -24,12 +24,12 @@ the level is 2, the tasks cached are at the host level and at the rack level.
 
 <property>
     <name>mapred.locality.or.bigger.tasks.first</name>
-    <value>true</value>
+    <value>false</value>
 </property>
 
 <property>
  <name>size.of.splits</name>
- <value>2-1;2-2</value>
+ <value>9-1;9-2</value>
  <description> number of splits with - this number of blocks </description>
 </property>
 

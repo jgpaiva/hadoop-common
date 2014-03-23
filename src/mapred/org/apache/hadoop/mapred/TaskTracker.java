@@ -4637,9 +4637,9 @@ Runnable, TaskTrackerMXBean {
 				Integer attrNr = Integer.parseInt(filter.split("-")[0]);
 				String attrValue = filter.split("-")[1];
 				filtersMap.put(attrNr, attrValue);
-				System.out.println("there are filters!: " + attrNr + " - " + attrValue);
 			}
 		}
+		System.out.println("Task tracker.ver se o bloco " + blockId + " e' relevante...");
 		return xIndexUtils.checkIfRelevantRowGroup(filtersMap, blockId);
 	}
 }

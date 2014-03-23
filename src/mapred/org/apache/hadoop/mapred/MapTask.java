@@ -1825,6 +1825,7 @@ public class MapTask extends Task {
 		if (DFSClient.filters == null) {
 			return 1;
 		}
+		System.out.println("Map Task. ver se o bloco " + blockId + " e' relevante...");
 		return umbilicalAux.checkIfRelevantRowGroup(blockId, DFSClient.filters);
 	}
 

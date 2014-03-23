@@ -2183,6 +2183,44 @@ public class JobInProgress {
 		nonRunningReduces.add(tip);
 	}
 
+	/*mgferreira*/
+	private synchronized TaskInProgress findTaskFromListWithoutRemove(
+			Collection<TaskInProgress> tips, TaskTrackerStatus ttStatus,
+			int numUniqueHosts,
+			boolean removeFailedTip) {
+		Iterator<TaskInProgress> iter = tips.iterator();
+		while (iter.hasNext()) {
+			TaskInProgress tip = iter.next();
+
+			// Select a tip if
+			//   1. runnable   : still needs to be run and is not completed
+			//   2. ~running   : no other node is running it
+			//   3. earlier attempt failed : has not failed on this host
+			//                               and has failed on all the other hosts
+			// A TIP is removed from the list if 
+			// (1) this tip is scheduled
+			// (2) if the passed list is a level 0 (host) cache
+			// (3) when the TIP is non-schedulable (running, killed, complete)
+			if (tip.isRunnable() && !tip.isRunning()) {
+				// check if the tip has failed on this host
+				if (!tip.hasFailedOnMachine(ttStatus.getHost()) || 
+						tip.getNumberOfFailedMachines() >= numUniqueHosts) {
+					// check if the tip has failed on all the nodes
+					return tip;
+				} else if (removeFailedTip) { 
+					// the case where we want to remove a failed tip from the host cache
+					// point#3 in the TIP removal logic above
+					iter.remove();
+				}
+			} else {
+				// see point#3 in the comment above for TIP removal logic
+				iter.remove();
+			}
+		}
+		return null;
+	}
+
+
 	/**
 	 * Find a non-running task in the passed list of TIPs
 	 * @param tips a collection of TIPs
@@ -2364,53 +2402,68 @@ public class JobInProgress {
 			// off-switch/speculative tasks
 
 			/*mgferreira*/
-
-			//TODO:DEIXAR IF PA VER FACILMENTE SE E' MELHOR ESCOLHER TUDO LOCALMENTE PRIMEIRO
 			boolean localTasksFirst = conf.getBoolean("mapred.locality.or.bigger.tasks.first", false);
-			System.out.println("is locality more priority? " + localTasksFirst);
-			TaskInProgress bestTip = null;
-			List <TaskInProgress> cacheForLevelOfBestTip = null;
-			int maxLevelToSchedule = Math.min(maxCacheLevel, maxLevel);
-			for (level = 0;level < maxLevelToSchedule; ++level) {
-				List <TaskInProgress> cacheForLevel = nonRunningMapCache.get(key);
-				if (cacheForLevel != null) {
-					tip = findTaskFromList(cacheForLevel, tts, 
-							numUniqueHosts,level == 0);
-					if (tip != null) {
-						if (localTasksFirst) {
-							bestTip = tip;
-							cacheForLevelOfBestTip = cacheForLevel;
-							break;
-						}
-						if (bestTip == null) {
-							bestTip = tip;
-							cacheForLevelOfBestTip = cacheForLevel;
-						} else {
-							if (tip.splitInfo.numberOfFiles > bestTip.splitInfo.numberOfFiles) {
-								bestTip = tip;
-								cacheForLevelOfBestTip = cacheForLevel;
+			if(!localTasksFirst) {
+				List <TaskInProgress> cacheForLevel = null;
+				Node tipKey = null;
+				int maxLevelToSchedule = Math.min(maxCacheLevel, maxLevel);
+				for (level = 0;level < maxLevelToSchedule; ++level) {
+					List <TaskInProgress> cacheForLevelTmp = nonRunningMapCache.get(key);
+					if (cacheForLevelTmp != null) {
+						TaskInProgress tipTmp = findTaskFromListWithoutRemove(cacheForLevelTmp, tts, numUniqueHosts,level == 0);
+						if(tipTmp != null) {
+							System.out.println("Evaluating task with " + tipTmp.splitInfo.numberOfFiles + " blocks from " + tipTmp.splitInfo.getLocations()[0].toString() +" to " + tts.getHost());
+							if (tip == null) {
+								tip = tipTmp;
+								tipKey = key;
+								cacheForLevel = cacheForLevelTmp;
+							} else {
+								if (tipTmp.splitInfo.numberOfFiles > tip.splitInfo.numberOfFiles) {
+									System.out.println("save it");
+									tip = tipTmp;
+									tipKey = key;
+									cacheForLevel = cacheForLevelTmp;
+								}
 							}
 						}
 					}
+					key = key.getParent();
 				}
-				key = key.getParent();
-			}
+				if (tip != null) {
+					System.out.println("Scheduling task with " + tip.splitInfo.numberOfFiles + " blocks from " + tip.splitInfo.getLocations()[0].toString() +" to " + tts.getHost());
+					// Add to running cache
+					cacheForLevel.remove(tip);
+					scheduleMap(tip);
+					// remove the cache if its empty
+					if (cacheForLevel.size() == 0) {
+						nonRunningMapCache.remove(tipKey);
+					}
+					return tip.getIdWithinJob();
+				}
+			} else {
+				int maxLevelToSchedule = Math.min(maxCacheLevel, maxLevel);
+				for (level = 0;level < maxLevelToSchedule; ++level) {
+					List <TaskInProgress> cacheForLevel = nonRunningMapCache.get(key);
+					if (cacheForLevel != null) {
+						tip = findTaskFromList(cacheForLevel, tts, 
+								numUniqueHosts,level == 0);
+						if (tip != null) {
+							System.out.println("Scheduling task with " + tip.splitInfo.numberOfFiles + " blocks from " + tip.splitInfo.getLocations()[0].toString() +" to " + tts.getHost());
+							// Add to running cache
+							scheduleMap(tip);
 
-			if(bestTip != null) {
-				// Add to running cache
-				scheduleMap(bestTip);
-				// remove the cache if its empty
-				if (cacheForLevelOfBestTip.size() == 0) {
-					nonRunningMapCache.remove(key);
+							// remove the cache if its empty
+							if (cacheForLevel.size() == 0) {
+								nonRunningMapCache.remove(key);
+							}
+
+							return tip.getIdWithinJob();
+						}
+					}
+					key = key.getParent();
 				}
-				return bestTip.getIdWithinJob();
-			}
-			// Check if we need to only schedule a local task (node-local/rack-local)
-			if (level == maxCacheLevel) {
-				return -1;
 			}
 		}
-
 		//2. Search breadth-wise across parents at max level for non-running 
 		//   TIP if
 		//     - cache exists and there is a cache miss 

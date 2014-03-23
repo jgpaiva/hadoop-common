@@ -93,13 +93,19 @@ public class xRecordReader implements RecordReader<LongWritable, Text> {
 	private void openRowGroup() throws IOException {
 		long currentBlockId = split.getBlocksIds().get(currentRowGroupIndex);
 		relevantBlock = MapTask.relevantRowGroup(currentBlockId);
-		org.apache.hadoop.util.LineReader.relevantBlock = relevantBlock;
 		array2inputStreams.clear();
 		inN.clear();
 		posN.clear();
 
+		System.out.println("Xrecord reader: block " + currentBlockId + " relevancia: " + relevantBlock);
+		if(relevantBlock == 0){
+			org.apache.hadoop.util.LineReader.remoteReadAppBlock = true;
+		}
+		else {
+			org.apache.hadoop.util.LineReader.remoteReadAppBlock = false;
+		}
+
 		if(relevantBlock != -1) {
-			System.out.println("block " + currentBlockId + " is relevant!");
 			this.maxLineLength = job.getInt("mapred.linerecordreader.maxlength", Integer.MAX_VALUE);			
 			FIRST_COLUMN_IDENTIFIER = job.get("first.column.identifier");
 
@@ -120,10 +126,7 @@ public class xRecordReader implements RecordReader<LongWritable, Text> {
 			}
 			FSDataInputStream fileIn = fs.open(file);
 
-			System.out.println("going to check if it is compressed...");
-			System.out.println("is it? " +isCompressedInput());
 			if (isCompressedInput()) {
-				System.out.println("COMPRESSED!");
 				decompressor = CodecPool.getDecompressor(codec);
 				if (codec instanceof SplittableCompressionCodec) {
 					final SplitCompressionInputStream cIn =

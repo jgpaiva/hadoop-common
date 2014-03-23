@@ -51,9 +51,7 @@ public class LineReader {
 	// The line delimiter
 	private final byte[] recordDelimiterBytes;
 	public static boolean remoteReadAppBlock = false;
-	
-	/*mgferreira*/
-	public static int relevantBlock;
+
 
 	/**
 	 * Create a line reader that reads from the given stream using the
@@ -196,59 +194,57 @@ public class LineReader {
 		 * follows.
 		 */
 
-		/*mgferreira*/
-		if(relevantBlock == 0) {
-			//going to read a block coming from a non host datanode
-			remoteReadAppBlock = true;
-		}
-		else {
-			remoteReadAppBlock = false;			
-		}
-		
-		str.clear();
-		int txtLength = 0; //tracks str.getLength(), as an optimization
-		int newlineLength = 0; //length of terminating newline
-		boolean prevCharCR = false; //true of prev char was CR
-		long bytesConsumed = 0;
-		do {
-			int startPosn = bufferPosn; //starting from where we left off the last time
-			if (bufferPosn >= bufferLength) {
-				startPosn = bufferPosn = 0;
-				if (prevCharCR)
-					++bytesConsumed; //account for CR from previous read
-				bufferLength = in.read(buffer);
-				if (bufferLength <= 0)
-					break; // EOF
-			}
-			for (; bufferPosn < bufferLength; ++bufferPosn) { //search for newline
-				if (buffer[bufferPosn] == LF) {
-					newlineLength = (prevCharCR) ? 2 : 1;
-					++bufferPosn; // at next invocation proceed from following byte
-					break;
+		try{
+			System.out.println("line reader");
+			str.clear();
+			int txtLength = 0; //tracks str.getLength(), as an optimization
+			int newlineLength = 0; //length of terminating newline
+			boolean prevCharCR = false; //true of prev char was CR
+			long bytesConsumed = 0;
+			do {
+				int startPosn = bufferPosn; //starting from where we left off the last time
+				if (bufferPosn >= bufferLength) {
+					startPosn = bufferPosn = 0;
+					if (prevCharCR)
+						++bytesConsumed; //account for CR from previous read
+					bufferLength = in.read(buffer);
+					if (bufferLength <= 0)
+						break; // EOF
 				}
-				if (prevCharCR) { //CR + notLF, we are at notLF
-					newlineLength = 1;
-					break;
+				for (; bufferPosn < bufferLength; ++bufferPosn) { //search for newline
+					if (buffer[bufferPosn] == LF) {
+						newlineLength = (prevCharCR) ? 2 : 1;
+						++bufferPosn; // at next invocation proceed from following byte
+						break;
+					}
+					if (prevCharCR) { //CR + notLF, we are at notLF
+						newlineLength = 1;
+						break;
+					}
+					prevCharCR = (buffer[bufferPosn] == CR);
 				}
-				prevCharCR = (buffer[bufferPosn] == CR);
-			}
-			int readLength = bufferPosn - startPosn;
-			if (prevCharCR && newlineLength == 0)
-				--readLength; //CR at the end of the buffer
-			bytesConsumed += readLength;
-			int appendLength = readLength - newlineLength;
-			if (appendLength > maxLineLength - txtLength) {
-				appendLength = maxLineLength - txtLength;
-			}
-			if (appendLength > 0) {
-				str.append(buffer, startPosn, appendLength);
-				txtLength += appendLength;
-			}
-		} while (newlineLength == 0 && bytesConsumed < maxBytesToConsume);
+				int readLength = bufferPosn - startPosn;
+				if (prevCharCR && newlineLength == 0)
+					--readLength; //CR at the end of the buffer
+				bytesConsumed += readLength;
+				int appendLength = readLength - newlineLength;
+				if (appendLength > maxLineLength - txtLength) {
+					appendLength = maxLineLength - txtLength;
+				}
+				if (appendLength > 0) {
+					str.append(buffer, startPosn, appendLength);
+					txtLength += appendLength;
+				}
+			} while (newlineLength == 0 && bytesConsumed < maxBytesToConsume);
 
-		if (bytesConsumed > (long)Integer.MAX_VALUE)
-			throw new IOException("Too many bytes before newline: " + bytesConsumed);    
-		return (int)bytesConsumed;
+			if (bytesConsumed > (long)Integer.MAX_VALUE)
+				throw new IOException("Too many bytes before newline: " + bytesConsumed);    
+			return (int)bytesConsumed;
+		}
+		catch (IrrelevantRemoteBlockException e) {
+			System.out.println("APANHEI EXCEPTION");
+			return 0;
+		}
 	}
 
 	/**
