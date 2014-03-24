@@ -56,6 +56,7 @@ implements JobConfigurable {
 	static final String NUM_INPUT_FILES = "mapreduce.input.num.files";
 
 	private String FIRST_COLUMN_IDENTIFIER = "";
+	private int nNodes = 0;
 
 	public RecordReader<LongWritable, Text> getRecordReader(
 			InputSplit genericSplit,
@@ -73,7 +74,7 @@ implements JobConfigurable {
 		// Save the number of input files in the job-conf
 		job.setLong(NUM_INPUT_FILES, files.length);
 		FIRST_COLUMN_IDENTIFIER = job.get("first.column.identifier");
-
+		nNodes = job.getInt("number.of.nodes", 1);
 
 		for(int i = 0; i < files.length; i++) {
 			FileStatus file = files[i];
@@ -184,32 +185,19 @@ implements JobConfigurable {
 
 	private List<Integer> buildSplitList(String splitsString) {
 		//<k, v> : v splits with k blocks
-		TreeMap<Integer, Integer> splitsNblocks = new TreeMap<Integer, Integer>();
 		List<Integer> splitList = new ArrayList<Integer>();
-
-		if(splitsString != null) {
-			String[] splits = splitsString.split(":");
-			for (String splitString : splits) {
-				int numberOfSplits = Integer.parseInt(splitString.split("-")[0]);
-				int numberOfBlocks = Integer.parseInt(splitString.split("-")[1]);
-				splitsNblocks.put(new Integer(numberOfBlocks), new Integer(numberOfSplits));
-			}
-		}
 		splitList = new ArrayList<Integer>();
-		while(true) {
-			boolean added = false;
-			for (Integer nBlocks : splitsNblocks.keySet()) {
-				int nSplitsWithNBlocks = splitsNblocks.get(nBlocks).intValue();
-				if (nSplitsWithNBlocks != 0) {
-					added = true;
-					splitList.add(new Integer(nBlocks.intValue()));
-					splitsNblocks.put(nBlocks, new Integer(nSplitsWithNBlocks-1));
+
+		String[] splits = splitsString.split(":");
+		for(int n = 0; n < nNodes; n++) {
+			for (String splitString : splits) {
+				int numberOfSplitsPerNode = (Integer.parseInt(splitString.split("-")[0])/nNodes);
+				for(int m = 0; m < numberOfSplitsPerNode; n++) {
+					splitList.add(new Integer(Integer.parseInt(splitString.split("-")[1])));
 				}
 			}
-			if(added == false) {
-				break;
-			}
 		}
+		System.out.println(splitList);
 		return splitList;
-	}
+	} 
 }
