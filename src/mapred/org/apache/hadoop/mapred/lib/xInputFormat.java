@@ -192,7 +192,7 @@ implements JobConfigurable {
 		for(int n = 0; n < nNodes; n++) {
 			for (String splitString : splits) {
 				int numberOfSplitsPerNode = (Integer.parseInt(splitString.split("-")[0])/nNodes);
-				for(int m = 0; m < numberOfSplitsPerNode; n++) {
+				for(int m = 0; m < numberOfSplitsPerNode; m++) {
 					splitList.add(new Integer(Integer.parseInt(splitString.split("-")[1])));
 				}
 			}
