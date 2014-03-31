@@ -24,25 +24,30 @@ determine the host, port, etc. for a filesystem.</description>
 
 <property>
 <name>columns</name>
-<value>1</value>
+<value>4</value>
 <description> The number of attributes containing in the dataset  </description>
 </property>
 
 <property>
 <name>number.of.row.groups</name>
-<value>6</value>
+<value>1</value>
 </property>
 
 <property>
 <name>number.of.nodes</name>
-<value>3</value>
+<value>1</value>
 </property>
 
 
 <property>
 <name>first.column.identifier</name>
-<value>_0_</value>
+<value>_1_</value>
 <description> Sequence of characters that identifies the first columns of row groups </description>
+</property>
+
+<property>
+<name> columns.to.index</name>
+<value>1;2;3</value>
 </property>
 
 </configuration>

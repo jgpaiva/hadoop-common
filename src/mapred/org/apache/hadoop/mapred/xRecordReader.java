@@ -129,17 +129,29 @@ public class xRecordReader implements RecordReader<LongWritable, Text> {
 			if (isCompressedInput()) {
 				decompressor = CodecPool.getDecompressor(codec);
 				if (codec instanceof SplittableCompressionCodec) {
-					final SplitCompressionInputStream cIn =
-							((SplittableCompressionCodec)codec).createInputStream(
-									fileIn, decompressor, start, end,
-									SplittableCompressionCodec.READ_MODE.BYBLOCK);
+					final SplitCompressionInputStream cIn = ((SplittableCompressionCodec)codec).createInputStream(
+									fileIn, decompressor, start, end, SplittableCompressionCodec.READ_MODE.BYBLOCK);
 					in = new LineReader(cIn, job);
 					start = cIn.getAdjustedStart();
 					end = cIn.getAdjustedEnd();
 					filePosition = cIn; // take pos from compressed stream
+					
+					for (FSDataInputStream fileInN: array2inputStreams) {
+						final SplitCompressionInputStream cInN = ((SplittableCompressionCodec)codec).createInputStream(
+								fileInN, decompressor, start, end, SplittableCompressionCodec.READ_MODE.BYBLOCK);
+						inN.add(new LineReader(cInN, job));
+						long startN = cInN.getAdjustedStart();
+						long endN = cInN.getAdjustedEnd();
+						filePositionN.add(cInN); // take pos from compressed stream
+					}
 				} else {
 					in = new LineReader(codec.createInputStream(fileIn, decompressor), job);
 					filePosition = fileIn;
+					
+					for (FSDataInputStream fileInN: array2inputStreams) {
+						inN.add(new LineReader(codec.createInputStream(fileInN, decompressor), job));
+						filePositionN.add(fileInN);
+					}
 				}
 			} else {
 				for (FSDataInputStream fileInN: array2inputStreams) {
@@ -168,7 +180,7 @@ public class xRecordReader implements RecordReader<LongWritable, Text> {
 		ArrayList<Path> paths = new ArrayList<Path>();
 
 		String relevantAttrsS = job.get("relevantAttrs");
-		String[] relevantAttrs = relevantAttrsS.split(";");
+		String[] relevantAttrs = relevantAttrsS.split(":");
 
 		for(String relevantAttr : relevantAttrs) {
 			Path filePath = file.getParent();
@@ -243,6 +255,10 @@ public class xRecordReader implements RecordReader<LongWritable, Text> {
 
 				int newSize = in.readLine(value, maxLineLength, Math.max(maxBytesToConsume(pos), maxLineLength));
 				Text accumulator = new Text(value.toString());
+				
+				if (newSize == 0) {
+					break;
+				}
 
 				for (LineReader in : inN) {
 					Text newValue = new Text();
@@ -256,10 +272,6 @@ public class xRecordReader implements RecordReader<LongWritable, Text> {
 					}
 				}
 				value.set(accumulator.toString());
-
-				if (newSize == 0) {
-					break;
-				}
 
 				pos += newSize;
 				if (newSize < maxLineLength) {

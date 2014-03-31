@@ -101,6 +101,7 @@ public class DFSClient implements FSConstants, java.io.Closeable {
 
   /*mgferreira*/
   public static String filters;
+  public static String firstColumnId;
   
   /**
    * We assume we're talking to another CDH server, which supports
@@ -254,6 +255,7 @@ public class DFSClient implements FSConstants, java.io.Closeable {
   DFSClient(InetSocketAddress nameNodeAddr, ClientProtocol rpcNamenode,
       Configuration conf, FileSystem.Statistics stats)
     throws IOException {
+	this.firstColumnId = conf.get("first.column.identifier");
     this.conf = conf;
     this.stats = stats;
     this.nnAddress = nameNodeAddr;
@@ -1834,8 +1836,10 @@ public class DFSClient implements FSConstants, java.io.Closeable {
         new BufferedOutputStream(NetUtils.getOutputStream(sock,HdfsConstants.WRITE_TIMEOUT)));
      
       /*mgferreira*/
-      byte protocol = LineReader.remoteReadAppBlock ? DataTransferProtocol.OP_READ_APPBLOCK: DataTransferProtocol.OP_READ_BLOCK;
-
+      byte protocol = DataTransferProtocol.OP_READ_BLOCK;
+      if (LineReader.remoteReadAppBlock && file.contains(firstColumnId)) {
+    	  protocol = DataTransferProtocol.OP_READ_APPBLOCK;
+      }
       //write the header.
       out.writeShort( DataTransferProtocol.DATA_TRANSFER_VERSION );
       out.write(protocol);

@@ -17,19 +17,19 @@
  */
 package org.apache.hadoop.hdfs.server.datanode;
 
+import static org.apache.hadoop.hdfs.server.datanode.DataNode.DN_CLIENTTRACE_FORMAT;
+
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
-import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
-import java.io.ObjectOutputStream;
 import java.io.OutputStream;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.SocketException;
+import java.util.ArrayList;
 import java.util.TreeMap;
-import java.util.TreeSet;
 
 import org.apache.commons.logging.Log;
 import org.apache.hadoop.hdfs.DFSConfigKeys;
@@ -45,13 +45,11 @@ import org.apache.hadoop.io.IOUtils;
 import org.apache.hadoop.io.MD5Hash;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.net.NetUtils;
-import org.apache.hadoop.security.token.Token;
 import org.apache.hadoop.security.token.SecretManager.InvalidToken;
+import org.apache.hadoop.security.token.Token;
 import org.apache.hadoop.util.DataChecksum;
 import org.apache.hadoop.util.StringUtils;
 import org.apache.hadoop.util.xIndexUtils;
-
-import static org.apache.hadoop.hdfs.server.datanode.DataNode.DN_CLIENTTRACE_FORMAT;
 
 /**
  * Thread for processing incoming/outgoing data stream.
@@ -67,7 +65,8 @@ class DataXceiver implements Runnable, FSConstants {
 	DataXceiverServer dataXceiverServer;
 	private boolean connectToDnViaHostname;
 
-
+	/*mgferreira*/
+	ArrayList<Integer> columnsToIndex = new ArrayList<Integer>();
 
 	public DataXceiver(Socket s, DataNode datanode, 
 			DataXceiverServer dataXceiverServer) {
@@ -82,6 +81,13 @@ class DataXceiver implements Runnable, FSConstants {
 		this.connectToDnViaHostname = datanode.getConf().getBoolean(
 				DFSConfigKeys.DFS_DATANODE_USE_DN_HOSTNAME,
 				DFSConfigKeys.DFS_DATANODE_USE_DN_HOSTNAME_DEFAULT);
+
+		String columnsToIndexStr = datanode.getConf().get("columns.to.index");
+		if (columnsToIndexStr != null) {
+			for (String columnToIndex : columnsToIndexStr.split(";")) {
+				columnsToIndex.add(Integer.parseInt(columnToIndex));
+			}
+		}
 	}
 
 	/**
@@ -319,7 +325,7 @@ class DataXceiver implements Runnable, FSConstants {
 					System.out.println("read block " + blockId + " for another datanode");
 					// <attribute number #>-<predicate>;<attribute number #>-<predicate>...
 					if(filters != null) {
-						String[] filtersArr = filters.split(";");
+						String[] filtersArr = filters.split(":");
 						for (String filter : filtersArr) {
 							Integer attrNr = Integer.parseInt(filter.split("-")[0]);
 							String attrValue = filter.split("-")[1];
@@ -638,7 +644,6 @@ class DataXceiver implements Runnable, FSConstants {
 					isRecovery, client, srcDataNode, datanode);
 
 			/*mgferreira*/ 
-			blockReceiver.createIndex = true;
 			if(DataNode.columnsPerRowGroup == 1) {
 				DataNode.currentColumn = 0;
 			}
@@ -646,6 +651,24 @@ class DataXceiver implements Runnable, FSConstants {
 				DataNode.currentColumn = (DataNode.currentColumn + 1) % DataNode.columnsPerRowGroup;
 			}
 			xIndexUtils.currentColumnNr = DataNode.currentColumn;
+
+			if(columnsToIndex.contains(new Integer(DataNode.currentColumn))) {
+				blockReceiver.createIndex = true;
+			} else {
+				blockReceiver.createIndex = false;
+			}
+
+			if(columnsToIndex.size() > 0) {
+				if(columnsToIndex.get(0).equals(new Integer(DataNode.currentColumn))) {
+					xIndexUtils.first = true;
+				}
+				else {
+					xIndexUtils.first = false;
+				}
+			}
+
+			System.out.println("column: " + DataNode.currentColumn);
+			System.out.println("going to indexing? " + blockReceiver.createIndex);
 
 			int mb = 1024*1024;
 

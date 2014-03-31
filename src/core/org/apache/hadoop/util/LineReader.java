@@ -195,7 +195,6 @@ public class LineReader {
 		 */
 
 		try{
-			System.out.println("line reader");
 			str.clear();
 			int txtLength = 0; //tracks str.getLength(), as an optimization
 			int newlineLength = 0; //length of terminating newline
@@ -242,7 +241,7 @@ public class LineReader {
 			return (int)bytesConsumed;
 		}
 		catch (IrrelevantRemoteBlockException e) {
-			System.out.println("APANHEI EXCEPTION");
+			System.out.println("Irrelevant Remote Block");
 			return 0;
 		}
 	}
