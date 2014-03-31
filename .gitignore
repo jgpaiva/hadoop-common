@@ -75,3 +75,4 @@ src/native/config/depcomp
 src/native/config/install-sh
 src/native/config/ltmain.sh
 src/native/config/missing
+hadoop_aux/bin/
