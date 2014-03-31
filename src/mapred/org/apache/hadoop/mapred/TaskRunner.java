@@ -21,6 +21,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.PrintStream;
+import java.lang.management.ManagementFactory;
 import java.net.InetSocketAddress;
 import java.net.URI;
 import java.util.ArrayList;
@@ -186,6 +187,8 @@ abstract class TaskRunner extends Thread {
   @Override
   public final void run() {
     String errorInfo = "Child Error";
+    
+    System.out.println("ONDE ESTOU? task runner " + ManagementFactory.getRuntimeMXBean().getName());
     try {
       
       //before preparing the job localize 

@@ -1333,6 +1333,7 @@ public class JobInProgress {
                                             int clusterSize, 
                                             int numUniqueHosts
                                            ) throws IOException {
+
     return obtainNewMapTaskCommon(tts, clusterSize, numUniqueHosts, 
         anyCacheLevel);
   }

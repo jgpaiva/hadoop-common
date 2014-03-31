@@ -25,6 +25,7 @@ import java.io.PrintStream;
 import java.net.InetSocketAddress;
 import java.security.PrivilegedExceptionAction;
 import java.util.Arrays;
+
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.fs.FSError;
@@ -53,8 +54,7 @@ import org.apache.log4j.LogManager;
 
 class Child {
 
-  public static final Log LOG =
-    LogFactory.getLog(Child.class);
+  public static final Log LOG = LogFactory.getLog(Child.class);
 
   static volatile TaskAttemptID taskid = null;
   static volatile boolean currentJobSegmented = true;
@@ -67,7 +67,6 @@ class Child {
   }
 
   public static void main(String[] args) throws Throwable {
-    LOG.debug("Child starting");
 
     final JobConf defaultConf = new JobConf();
     String host = args[0];
@@ -77,23 +76,25 @@ class Child {
     final String logLocation = args[3];
     final int SLEEP_LONGER_COUNT = 5;
     int jvmIdInt = Integer.parseInt(args[4]);
+    
     JVMId jvmId = new JVMId(firstTaskid.getJobID(),firstTaskid.isMap(),jvmIdInt);
     String prefix = firstTaskid.isMap() ? "MapTask" : "ReduceTask";
     
+
     cwd = System.getenv().get(TaskRunner.HADOOP_WORK_DIR);
     if (cwd == null) {
       throw new IOException("Environment variable " + 
                              TaskRunner.HADOOP_WORK_DIR + " is not set");
     }
-
     // file name is passed thru env
     String jobTokenFile = 
       System.getenv().get(UserGroupInformation.HADOOP_TOKEN_FILE_LOCATION);
+    
     Credentials credentials = 
       TokenCache.loadTokens(jobTokenFile, defaultConf);
     LOG.debug("loading token. # keys =" +credentials.numberOfSecretKeys() + 
         "; from file=" + jobTokenFile);
-    
+
     Token<JobTokenIdentifier> jt = TokenCache.getJobToken(credentials);
     SecurityUtil.setTokenService(jt, address);
     UserGroupInformation current = UserGroupInformation.getCurrentUser();
@@ -319,7 +320,7 @@ class Child {
     }
   }
 
-  private static void initMetrics(String prefix, String procName,
+private static void initMetrics(String prefix, String procName,
                                   String sessionId) {
     DefaultMetricsSystem.initialize(prefix);  
     JvmMetricsSource.create(procName, sessionId);

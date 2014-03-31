@@ -19,6 +19,7 @@
 package org.apache.hadoop.mapred;
 
 import java.io.IOException;
+import java.lang.management.ManagementFactory;
 
 import org.apache.hadoop.util.ReflectionUtils;
 
@@ -44,6 +45,8 @@ public class MapRunner<K1, V1, K2, V2>
       // allocate key & value instances that are re-used for all entries
       K1 key = input.createKey();
       V1 value = input.createValue();
+      
+      System.out.println("ONDE ESTOU? MAP RUNNER" + ManagementFactory.getRuntimeMXBean().getName());
       
       while (input.next(key, value)) {
         // map pair to output

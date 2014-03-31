@@ -20,6 +20,7 @@ package org.apache.hadoop.mapred;
 
 import java.io.File;
 import java.io.IOException;
+import java.lang.management.ManagementFactory;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -37,7 +38,9 @@ import org.apache.hadoop.mapred.TaskTracker.TaskInProgress;
 import org.apache.hadoop.mapreduce.TaskType;
 import org.apache.hadoop.mapreduce.server.tasktracker.JVMInfo;
 import org.apache.hadoop.mapreduce.server.tasktracker.userlogs.JvmFinishedEvent;
+import org.apache.hadoop.mapreduce.split.JobSplit.TaskSplitIndex;
 import org.apache.hadoop.util.ProcessTree;
+import org.apache.hadoop.util.xIndexUtils;
 import org.apache.hadoop.util.ProcessTree.Signal;
 import org.apache.hadoop.util.Shell.ShellCommandExecutor;
 
@@ -122,6 +125,8 @@ class JvmManager {
   public void launchJvm(TaskRunner t, JvmEnv env
                         ) throws IOException, InterruptedException {
     if (t.getTask().isMapTask()) {
+
+    	System.out.println("ONDE ESTOU? jvm manager " + ManagementFactory.getRuntimeMXBean().getName());
       mapJvmManager.reapJvm(t, env);
     } else {
       reduceJvmManager.reapJvm(t, env);
@@ -493,6 +498,7 @@ class JvmManager {
           TaskRunner runner = jvmToRunningTask.get(jvmId);
           if (runner != null) {
             Task task = runner.getTask();
+            
             //Launch the task controller to run task JVM
             String user = task.getUser();
             TaskAttemptID taskAttemptId = task.getTaskID();
