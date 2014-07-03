@@ -20,6 +20,7 @@ package org.apache.hadoop.mapred;
 
 import java.io.IOException;
 
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.ipc.VersionedProtocol;
 import org.apache.hadoop.mapred.JvmTask;
 import org.apache.hadoop.mapreduce.security.token.JobTokenSelector;
@@ -180,4 +181,13 @@ public interface TaskUmbilicalProtocol extends VersionedProtocol {
    */
   void updatePrivateDistributedCacheSizes(org.apache.hadoop.mapreduce.JobID jobId,
                                           long[] sizes) throws IOException;
+
+/**
+ * @param rowGroupName
+ * @param indexNode
+ * @param job
+ * @return
+ */
+String checkIfRelevantRowGroup(String rowGroupName, String indexNode,
+		Configuration job) throws IOException;
 }

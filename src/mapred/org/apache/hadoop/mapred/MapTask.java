@@ -79,6 +79,7 @@ class MapTask extends Task {
 
   private TaskSplitIndex splitMetaInfo = new TaskSplitIndex();
   private final static int APPROX_HEADER_LENGTH = 150;
+  private static TaskUmbilicalProtocol umbilicalAux;
 
   private static final Log LOG = LogFactory.getLog(MapTask.class.getName());
 
@@ -403,6 +404,7 @@ class MapTask extends Task {
                     TaskReporter reporter
                     ) throws IOException, InterruptedException,
                              ClassNotFoundException {
+	umbilicalAux = umbilical;
     InputSplit inputSplit = getSplitDetails(new Path(splitIndex.getSplitLocation()),
            splitIndex.getStartOffset());
 
@@ -1797,5 +1799,18 @@ class MapTask extends Task {
       }
     }
   }
+
+/**
+ * @param name
+ * @param indexNode
+ * @param job
+ * @return
+ */
+public static String relevantRowGroup(String rowGroupName, String indexNode,
+		Configuration job) throws IOException{
+	// TODO Auto-generated method stub
+	LOG.info("Map task is going to get offset set");
+	 return umbilicalAux.checkIfRelevantRowGroup(rowGroupName, indexNode, job);
+}
 
 }

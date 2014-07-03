@@ -104,6 +104,7 @@ import org.apache.hadoop.util.ProcfsBasedProcessTree;
 import org.apache.hadoop.security.token.Token;
 import org.apache.hadoop.security.token.TokenIdentifier;
 import org.apache.hadoop.util.ReflectionUtils;
+import org.apache.hadoop.util.ShortMapIndex;
 import org.apache.hadoop.util.StringUtils;
 import org.apache.hadoop.util.VersionInfo;
 import org.apache.hadoop.util.DiskChecker.DiskErrorException;
@@ -4586,5 +4587,16 @@ public class TaskTracker implements MRConstants, TaskUmbilicalProtocol,
     authorizeJVM(jobId);
     distributedCacheManager.setArchiveSizes(jobId, sizes);
   }
+
+/* (non-Javadoc)
+ * @see org.apache.hadoop.mapred.TaskUmbilicalProtocol#checkIfRelevantRowGroup(java.lang.String, java.lang.String, org.apache.hadoop.conf.Configuration)
+ */
+@Override
+public String checkIfRelevantRowGroup(String rowGroupName, String indexNode,
+		Configuration job)throws IOException {
+	// TODO Auto-generated method stub
+	String statAndOffset=ShortMapIndex.getOffset(rowGroupName,indexNode,job);
+	return statAndOffset;
+}
 
 }
