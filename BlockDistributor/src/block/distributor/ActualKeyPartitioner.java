@@ -1,3 +1,4 @@
+package block.distributor;
 import java.util.HashMap;
 
 import org.apache.hadoop.io.Text;
