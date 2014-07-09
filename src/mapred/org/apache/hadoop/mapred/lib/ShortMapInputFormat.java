@@ -9,7 +9,7 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.Text;
-import org.apache.hadoop.mapred.Constants;
+import org.apache.hadoop.mapred.ConstantConfigs;
 import org.apache.hadoop.mapred.FileInputFormat;
 import org.apache.hadoop.mapred.FileSplit;
 import org.apache.hadoop.mapred.InputSplit;
@@ -56,7 +56,7 @@ public class ShortMapInputFormat extends FileInputFormat<LongWritable, Text>
 	{
 		FileStatus[] files = listStatus(job);
 
-		job.setLong(Constants.NUM_INPUT_FILES, files.length);
+		job.setLong(ConstantConfigs.NUM_INPUT_FILES, files.length);
 		ArrayList<ShortMapFileSplit> splits = new ArrayList<ShortMapFileSplit>();
 		NetworkTopology clusterMap = new NetworkTopology();
 
@@ -80,7 +80,7 @@ public class ShortMapInputFormat extends FileInputFormat<LongWritable, Text>
 			{
 				String pathName = path.getName();
 
-				if (!pathName.contains(Constants.FIRST_COLUMN_IDENTIFIER_TEXT))
+				if (!pathName.contains(ConstantConfigs.FIRST_COLUMN_IDENTIFIER_TEXT))
 				{
 					continue;
 				}
@@ -109,7 +109,7 @@ public class ShortMapInputFormat extends FileInputFormat<LongWritable, Text>
 				try
 				{
 					rowGroupId = Integer.parseInt(rowGroupName
-							.split(Constants.SPECIFIC_PREFIX)[1]);
+							.split(ConstantConfigs.SPECIFIC_PREFIX)[1]);
 				} catch (Exception ex)
 				{
 					LOG.info("Error while setting row group id");

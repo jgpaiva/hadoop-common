@@ -4589,14 +4589,20 @@ public class TaskTracker implements MRConstants, TaskUmbilicalProtocol,
   }
 
 /* (non-Javadoc)
- * @see org.apache.hadoop.mapred.TaskUmbilicalProtocol#checkIfRelevantRowGroup(java.lang.String, java.lang.String, org.apache.hadoop.conf.Configuration)
+ * @see org.apache.hadoop.mapred.TaskUmbilicalProtocol#checkIfRelevantRowGroup(int, java.lang.String, org.apache.hadoop.conf.Configuration)
  */
 @Override
-public String checkIfRelevantRowGroup(String rowGroupName, String indexNode,
-		Configuration job)throws IOException {
-	// TODO Auto-generated method stub
-	String statAndOffset=ShortMapIndex.getOffset(rowGroupName,indexNode,job);
+public String checkIfRelevantRowGroup(int rowGroupId, String indexNode,
+		Configuration job) throws IOException
+{
+	LOG.info("Task tracker call offset");
+	String statAndOffset=ShortMapIndex.getOffset(rowGroupId,indexNode,job);
 	return statAndOffset;
 }
+
+/* (non-Javadoc)
+ * @see org.apache.hadoop.mapred.TaskUmbilicalProtocol#checkIfRelevantRowGroup(java.lang.String, java.lang.String, org.apache.hadoop.conf.Configuration)
+ */
+
 
 }

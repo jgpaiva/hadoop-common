@@ -188,6 +188,6 @@ public interface TaskUmbilicalProtocol extends VersionedProtocol {
  * @param job
  * @return
  */
-String checkIfRelevantRowGroup(String rowGroupName, String indexNode,
+String checkIfRelevantRowGroup(int rowGroupId, String indexNode,
 		Configuration job) throws IOException;
 }

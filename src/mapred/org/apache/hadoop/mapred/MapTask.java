@@ -1806,11 +1806,11 @@ class MapTask extends Task {
  * @param job
  * @return
  */
-public static String relevantRowGroup(String rowGroupName, String indexNode,
+public static String relevantRowGroup(int rowGroupId, String indexNode,
 		Configuration job) throws IOException{
 	// TODO Auto-generated method stub
 	LOG.info("Map task is going to get offset set");
-	 return umbilicalAux.checkIfRelevantRowGroup(rowGroupName, indexNode, job);
+	 return umbilicalAux.checkIfRelevantRowGroup(rowGroupId, indexNode, job);
 }
 
 }

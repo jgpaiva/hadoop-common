@@ -45,7 +45,7 @@ this.length = length;
 this.hosts = hosts;
 }
 
-public ShortMapFileSplit(int RowGroupId,String rowGroupName,Path file, long start, long length, String[] hosts)
+public ShortMapFileSplit(int rowGroupId,String rowGroupName,Path file, long start, long length, String[] hosts)
 {
 	this(file,start,length,hosts);
 	this.rowGroupId=rowGroupId;

@@ -30,9 +30,10 @@ public class ShortMapRecordReader implements RecordReader<LongWritable, Text>
 	private ShortMapFileSplit split;
 	private Configuration job;
 	private String columnsOffsets;
-	long statusId = -1;// -1 block is not relavant;0 should start from 0th
+	public static long statusId = -1;// -1 block is not relavant;0 should start from 0th
 						// position;>0 read from offset
-
+    private String COLUMN_SEPERATOR=";$;#;";
+    public static final String COLUMN_REPLACER=";\\$\\;#;";
 	private CompressionCodecFactory compressionCodecs = null;
 	private CompressionCodec codec;
 	private Decompressor decompressor;
@@ -82,7 +83,7 @@ public class ShortMapRecordReader implements RecordReader<LongWritable, Text>
 		this.job = job;
 		this.split = split;
 		FIRST_COLUMN_IDENTIFIER = job
-				.get(Constants.FIRST_COLUMN_IDENTIFIER_TEXT);
+				.get(ConstantConfigs.FIRST_COLUMN_IDENTIFIER_TEXT);
 		openRowGroup();
 	}
 
@@ -98,6 +99,8 @@ public class ShortMapRecordReader implements RecordReader<LongWritable, Text>
 		LOG.info("inside create row group");
 		currentRowGroupIndex = split.getRowGroupId();
 		String rowGroupName = split.getRowGroupName();
+		
+		LOG.info("row group index "+currentRowGroupIndex+" name "+rowGroupName);
 		// As we add the first column path
 		// to index this is first column
 		// path
@@ -113,12 +116,14 @@ public class ShortMapRecordReader implements RecordReader<LongWritable, Text>
 
 		LOG.info("path count after ist remove " + pathsToRelavantAttr.size());
 
-		String indexNode = split.getRowGroupName().split(
-				Constants.SPECIFIC_PREFIX)[0];
+		//
+		String indexNode =split.getRowGroupName().split(ConstantConfigs.SPECIFIC_PREFIX)[0];//Relevant index file name for the block
+		
+		LOG.info("index name is "+indexNode);
 		String status = "-1";// 0;0;0
 		try
 		{
-			status = MapTask.relevantRowGroup(firstFile.getName(), indexNode,
+			status = MapTask.relevantRowGroup(currentRowGroupIndex, indexNode,
 					job);
 		} catch (Exception ex)
 		{
@@ -131,7 +136,7 @@ public class ShortMapRecordReader implements RecordReader<LongWritable, Text>
 		String[] valSet = status.split(";");
 		statusId = Integer.parseInt(valSet[0]);
 
-		if (statusId != -1)
+		if (statusId != -1) //-1 if block is irrelevant
 		{
 			if (statusId > 0)
 			{
@@ -139,7 +144,7 @@ public class ShortMapRecordReader implements RecordReader<LongWritable, Text>
 					offsetList.add(Long.parseLong(valSet[i]));
 			} else
 			{
-				for (int i = 1; i < valSet.length; i++)
+				for (int i = 0; i < pathsToRelavantAttr.size(); i++)
 				{
 					offsetList.add(0L);// All files should be started from
 										// started
@@ -256,15 +261,15 @@ public class ShortMapRecordReader implements RecordReader<LongWritable, Text>
 		// TODO Auto-generated method stub
 		ArrayList<Path> relevantPaths = new ArrayList<Path>();
 		String fileName = file.getName();
-		String firstFilePart = Constants.COLUMN_PREFIX + 0 + "_" + rowGroupName;
-		String relevantAttrStr = job.get(Constants.RELEVANT_ATTR_CONFIG);
+		String firstFilePart = ConstantConfigs.COLUMN_PREFIX + 0 + "_" + rowGroupName;
+		String relevantAttrStr = job.get(ConstantConfigs.RELEVANT_ATTR_CONFIG);
 
 		String[] relevantAttrs = relevantAttrStr.split(",");
 		Path filePath = file.getParent();
 
 		for (String attr : relevantAttrs)
 		{
-			String newFilePart = Constants.COLUMN_PREFIX + attr + "_"
+			String newFilePart = ConstantConfigs.COLUMN_PREFIX + attr + "_"
 					+ rowGroupName;
 			String newFileName = fileName.replace(firstFilePart, newFilePart);
 
