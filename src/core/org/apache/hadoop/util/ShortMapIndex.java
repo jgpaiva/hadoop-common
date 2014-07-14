@@ -21,7 +21,7 @@ import org.apache.hadoop.util.IndexValueObject;
  */
 public class ShortMapIndex
 {
-	static String indexDir="/hadoop/index";
+	static String indexDir;
 	public static final String fileMapFileName = "master.gz";
 	//static TreeMap<String, IndexValueObject> index;
 	static TreeMap<String, IndexValueObject> index;
@@ -34,6 +34,7 @@ public class ShortMapIndex
 	static final String OUTPUT_LOC_CONFIG="outputloc";
 	static final String RELEVANT_ATTR_CONFIG="relevantAttrs";
 	static String FILTER_VALUES_CONFIG="filterValues";
+	static String INDEX_DIR_LOCATION="index.dir.loc";
 	private static final org.apache.commons.logging.Log LOG = LogFactory.getLog(ShortMapIndex.class.getName());
 
 	public static String getOffset(int rowGroupId, String indexNode, Configuration job)
@@ -233,11 +234,12 @@ public class ShortMapIndex
 	 * @throws IOException
 	 * @throws ClassNotFoundException
 	 */
-	private static void setRelevantFilesMapToLoad(int rowGroupId, String indexNode, Configuration job) throws Exception
+	private static void setRelevantFilesMapToLoad(int rowGroupId, String indexNode, Configuration job)
 	{
 		try{
 		if (fileMap == null || isNotSameJob(job))
 		{
+			indexDir=job.get(INDEX_DIR_LOCATION);
 			String outputDir = job.get(OUTPUT_LOC_CONFIG);
 			Path pt = new Path(indexDir+"/" +indexNode+ fileMapFileName);
 			LOG.info("Index name to load is " + pt.getName());
