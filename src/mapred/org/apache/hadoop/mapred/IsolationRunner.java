@@ -29,6 +29,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.util.DiskChecker.DiskErrorException;
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.LocalDirAllocator;
 import org.apache.hadoop.fs.Path;
@@ -131,6 +132,16 @@ public class IsolationRunner {
                                        long[] sizes){
       // NOTHING
     }
+
+	/* (non-Javadoc)
+	 * @see org.apache.hadoop.mapred.TaskUmbilicalProtocol#checkIfRelevantRowGroup(int, java.lang.String, org.apache.hadoop.conf.Configuration)
+	 */
+	@Override
+	public String checkIfRelevantRowGroup(int rowGroupId, String indexNode, Configuration job) throws IOException
+	{
+		// TODO Auto-generated method stub
+		return "0";
+	}
   }
   
   private ClassLoader makeClassLoader(JobConf conf, 

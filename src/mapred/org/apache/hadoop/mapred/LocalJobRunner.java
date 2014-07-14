@@ -38,6 +38,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.filecache.DistributedCache;
 import org.apache.hadoop.filecache.TaskDistributedCacheManager;
 import org.apache.hadoop.filecache.TrackerDistributedCacheManager;
@@ -564,6 +565,15 @@ public class LocalJobRunner implements JobSubmissionProtocol {
                                                                 throws IOException {
       trackerDistributedCacheManager.setArchiveSizes(jobId, sizes);
     }
+
+	/* (non-Javadoc)
+	 * @see org.apache.hadoop.mapred.TaskUmbilicalProtocol#checkIfRelevantRowGroup(int, java.lang.String, org.apache.hadoop.conf.Configuration)
+	 */
+	@Override
+	public String checkIfRelevantRowGroup(int rowGroupId, String indexNode, Configuration job) throws IOException
+	{
+		return "0";
+	}
     
   }
 
