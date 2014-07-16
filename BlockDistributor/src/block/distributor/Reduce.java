@@ -86,8 +86,7 @@ public class Reduce extends MapReduceBase implements Reducer<CompositeKey, Writa
 	public void configure(JobConf conf)
 	{
 		outputDir = conf.get("outputloc");
-		indexDir="/hadoop/index";
-
+		indexDir=conf.get("index.dir.loc");
 		String confSize = conf.get("reduce.block.size");
 		if (confSize != null)
 		{

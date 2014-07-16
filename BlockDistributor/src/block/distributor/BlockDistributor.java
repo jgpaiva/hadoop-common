@@ -1,6 +1,7 @@
 package block.distributor;
 import java.io.BufferedReader;
 import java.io.FileReader;
+import java.io.IOException;
 import java.io.PrintWriter;
 
 import org.apache.hadoop.conf.Configuration;
@@ -58,7 +59,7 @@ public class BlockDistributor extends Configured implements Tool {
 		conf.set("jobName", "blockdistributor");
 		if (args.length < 5 || !isInteger(args[1]) || !isInteger(args[2])) {
 			System.out
-					.println("use <arg0> <arg1> <arg2>format when specifying arguments. arg0-group,args1-output block size,arg2-ip,arg3-op");
+					.println("use <arg0> <arg1> <arg2><arg3><arg4><arg5>format when specifying arguments. arg0-host file, arg1-folder to store index,arg2-column to group,arg3-output block size,arg4-ip,arg5-op");
 			System.exit(0);
 		}
 		conf.setOutputKeyClass(Text.class);
@@ -80,6 +81,16 @@ public class BlockDistributor extends Configured implements Tool {
 		conf.setIfUnset("outputloc", args[4]);
 		conf.setIfUnset("groupbyid", args[1]);
 		conf.setInt("reduce.block.size", Integer.parseInt(args[2]));
+				
+		String indexDir=conf.get("index.dir.loc");
+		
+		if(indexDir==null){
+			System.out.println("Please configure the index directory in core-site.xml");
+		}
+		
+		if(!isIndexDirValid(conf,indexDir)){
+			System.out.println(indexDir+" already contain some files. Please remove them or change the directory in core-site.xml");
+		}
 
 		 //set host list for task trackers
 		String hostsSet = getHostsSetfromFile(args[0]);
@@ -102,9 +113,9 @@ public class BlockDistributor extends Configured implements Tool {
 
 		PrintWriter writer = new PrintWriter("/home/chathuri/sample.txt",
 				"UTF-8");
-		String filename = args[4];
+		String fileName = args[4];
 		FileSystem fileSystem = FileSystem.get(conf);
-		FileStatus[] status = fileSystem.listStatus(new Path(filename));
+		FileStatus[] status = fileSystem.listStatus(new Path(fileName));
 		if (status.length > 0) {
 			for (int i = 0; i < status.length; i++) {
 				if (!status[i].isDir()) {
@@ -121,6 +132,21 @@ public class BlockDistributor extends Configured implements Tool {
 		}
 		writer.close();
 		return 0;
+	}
+
+	/**
+	 * @param conf
+	 * @return
+	 * @throws IOException 
+	 */
+	private boolean isIndexDirValid(JobConf conf,String fileName) throws IOException
+	{
+		FileSystem fileSystem = FileSystem.get(conf);
+		Path path = new Path(fileName);
+		if(!fileSystem.exists(path)){
+			return true;
+		}
+		return false;
 	}
 
 	private String getHostsSetfromFile(String hostsFile) {
