@@ -52,7 +52,7 @@ public class Reduce extends MapReduceBase implements Reducer<CompositeKey, Writa
 									// block size.Should read from config
 
 	// int maxBlockSize=100000;
-	HashMap<Integer, StringBuilder> currentFileList;
+	//HashMap<Integer, StringBuilder> currentFileList;
 	HashMap<Integer, Long> sizeList;
 	HashMap<Integer, String> fileMapping;
 	Boolean isNewBlock = true;
@@ -97,6 +97,7 @@ public class Reduce extends MapReduceBase implements Reducer<CompositeKey, Writa
 		this.conf = conf;
 		compressionCodecs = new CompressionCodecFactory(conf);
 		indexColumnNumber=conf.getInt("groupbyid", 0);
+		maxRecordCountPerBlock=conf.getInt("index.record.count", 50);//default keep 50.
 
 	}
 
@@ -122,8 +123,14 @@ public class Reduce extends MapReduceBase implements Reducer<CompositeKey, Writa
 			{
 				if (isNewBlock(row) || isStartRecord)
 				{
-					isStartRecord = false;
 					clearDataStructure(row);
+					
+					if(!isStartRecord){
+						mos.close();
+						mos = new MultipleOutputs(conf);
+					}
+					isStartRecord = false;
+					
 					addSingleRow(row, reporter, reducerName);
 					IndexRecordsHashMapBased(row, reducerName);
 					// IndexRecordsStringBased(row, key.getHost());
@@ -137,9 +144,7 @@ public class Reduce extends MapReduceBase implements Reducer<CompositeKey, Writa
 		}
 		tempIndexValueObj.setEndBlockId(blockId);
 		
-		System.out.println("Indexing completed. updated");
 		//PrintHashMap(indexMap);
-		System.out.println(indexStringBuilder.toString());
 		writeSerializedOutput(indexMap, false, reducerName);
 		UpdateMasterMap(reducerName);
 		writeSerializedOutput(masterMap, true, reducerName);
@@ -147,11 +152,12 @@ public class Reduce extends MapReduceBase implements Reducer<CompositeKey, Writa
 		System.out.println("Serialized indexMap and saved to disk");
 
 		// Test-Index Start
-		// readSerializedOutput(reducerName+POSTFIX_INDEX_OUTPUT);
+		// readSerilizedOutput(reducerName+POSTFIX_INDEX_OUTPUT);
 		// Test-Index End
 
 	}
 
+	//Test offset read
 	private void readSerializedOutput(String filePath)
 	{
 		// TODO Auto-generated method stub
@@ -222,7 +228,7 @@ public class Reduce extends MapReduceBase implements Reducer<CompositeKey, Writa
 	{
 		// TODO Auto-generated method stub
 		blockId = 0;
-		currentFileList = new HashMap<Integer, StringBuilder>();
+		//currentFileList = new HashMap<Integer, StringBuilder>();
 		sizeList = new HashMap<Integer, Long>();
 
 		// Start-Index
@@ -242,7 +248,6 @@ public class Reduce extends MapReduceBase implements Reducer<CompositeKey, Writa
 			escapeCharLength = 1;
 		}
 		indexStringBuilder = new StringBuilder();
-		maxRecordCountPerBlock = 50;
 		startingIndexKeyofaBlock = null;
 		globalOutputIndex = 0;
 		masterMap = new TreeMap<String, String>();
@@ -264,7 +269,7 @@ public class Reduce extends MapReduceBase implements Reducer<CompositeKey, Writa
 		String seqName = hostName + "ZblockZ" + blockId;
 		for (int i = 0; i < data.getColumns().size(); i++)
 		{
-			mos.getCollector("col" + i, seqName, reporter).collect(NullWritable.get(), new Text(data.getColumns().get(i)));
+			mos.getCollector("col" + i, seqName, reporter).collect(NullWritable.get(), new Text(data.getColumns().get(i)));	
 			long oldSize = sizeList.get(i);
 			oldOffsetSizeList.put(i, oldSize);
 			try
@@ -331,11 +336,11 @@ public class Reduce extends MapReduceBase implements Reducer<CompositeKey, Writa
 	{
 		String key = startingIndexKeyofaBlock + SEP_HEAD + tempIndexData;
 		String value = GenerateOutputFileName(false, reducerHost);
-		System.out.println("KEY=" + key + " VALUE=" + value);
 		masterMap.put(key, value);
 	}
 
 	/*
+	 * Store index as a string. Used to compare hashmap based index and string based index
 	 * Index the records according to the column configured by user Below is a sample output record, line ends with newline
 	 * character A$#*Z*#$ubuntuZblockZ1$#*Z*#$0$#*Z*#$0$#*Z*#$0$#*Z*#$0$#*Z*#$1$#*Z*#$1
 	 */
