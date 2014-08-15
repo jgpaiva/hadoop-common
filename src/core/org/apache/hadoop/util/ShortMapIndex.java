@@ -53,7 +53,8 @@ public class ShortMapIndex
 			{
 				Iterator<String> it = filterMap.keySet().iterator();
 			    LOG.info("filter map value count is "+filterMap.values().size());
-				while (it.hasNext())
+				
+			    while (it.hasNext())
 				{
 					String filter = it.next();
 					String fileName = filterMap.get(filter);
